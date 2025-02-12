@@ -24,6 +24,13 @@
             </h2>
             <Model />
         </section>
+
+        <section class="w-full max-w-6xl">
+            <h2 class="text-2xl font-bold text-gray-100">
+              Videos
+            </h2>
+            <Videos />
+        </section>
       </div>
     </div>
   </div>
@@ -33,5 +40,5 @@
 import { ref } from 'vue';
 import Photos from "@/components/Photos.vue";
 import Model from "@/components/Model.vue";
-
+import Videos from "@/components/Videos.vue";
 </script>

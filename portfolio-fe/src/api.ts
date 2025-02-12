@@ -67,3 +67,92 @@ export async function listModels(): Promise<string[]> {
 }
 
 
+export async function uploadVideo(formData: FormData): Promise<void> {
+    try {
+        const response = await retryRequest(() => 
+            axios.post(`${API_URL}/api/upload-video`, formData, {
+                headers: { 
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json'
+                },
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
+                responseType: 'json',
+                timeout: 60000,
+                validateStatus: (status) => status < 500,
+            })
+        );
+
+        if (!response.data) {
+            throw new Error('No response from server');
+        }
+
+        if (response.data.error) {
+            throw new Error(response.data.error);
+        }
+
+    } catch (error) {
+        console.error('Upload error details:', error);
+        if (axios.isAxiosError(error)) {
+            if (error.response) {
+                throw new Error(`Upload failed: ${error.response.data?.message || error.response.statusText}`);
+            } else if (error.request) {
+                throw new Error('Server not responding. Please try again.');
+            }
+        }
+        throw new Error('Failed to upload video. Please try again.');
+    }
+}
+async function retryRequest<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+    try {
+        return await fn();
+    } catch (error) {
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return retryRequest(fn, retries - 1, delay * 2);
+    }
+}
+
+export async function listVideos(): Promise<string[]> {
+    try {
+        const response = await retryRequest(() => 
+            axios.get(`${API_URL}/api/videos`, {
+                responseType: 'json',
+                timeout: 5000,
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                },
+                validateStatus: (status) => status < 500
+            })
+        );
+        
+        if (!response.data) {
+            console.error('Empty response from server');
+            return [];
+        }
+
+        if (!Array.isArray(response.data)) {
+            console.error('Unexpected response format:', response.data);
+            return [];
+        }
+
+        return response.data.map((path: string) => {
+            try {
+                return new URL(path.startsWith('/') ? path.slice(1) : path, API_URL).toString();
+            } catch (error) {
+                console.error('Error constructing URL for path:', path, error);
+                return `${API_URL}/${path.startsWith('/') ? path.slice(1) : path}`;
+            }
+        }).filter(Boolean);
+    } catch (error) {
+        console.error('Error fetching videos:', error);
+        if (axios.isAxiosError(error) && error.response) {
+            console.error('Server response:', error.response.data);
+        }
+        return [];
+    }
+}
+
+

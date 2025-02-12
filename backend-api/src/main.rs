@@ -5,13 +5,15 @@ use axum::http::{Method, header};
 mod handlers;
 mod routes;
 
-use handlers::{models, photos};
+use handlers::{models, photos, videos};
 
 #[tokio::main]
 async fn main() {
     for dir in [
         photos::PHOTO_FOLDER,
         models::MODEL_FOLDER,
+        videos::VIDEO_FOLDER,
+    
     ] {
         if let Err(e) = fs::create_dir_all(dir) {
             eprintln!("❌ Failed to create directory {}: {}", dir, e);
