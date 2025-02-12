@@ -1,4 +1,5 @@
 /target
+.DS_Store
 /static/models/*
 /static/photos/*
 /static/videos/*

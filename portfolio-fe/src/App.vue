@@ -17,6 +17,13 @@
             </h2>
             <Photos />
         </section>
+
+        <section class="w-full max-w-6xl">
+            <h2 class="text-2xl font-bold text-gray-100">
+              3D Models
+            </h2>
+            <Model />
+        </section>
       </div>
     </div>
   </div>
@@ -25,5 +32,6 @@
 <script setup>
 import { ref } from 'vue';
 import Photos from "@/components/Photos.vue";
+import Model from "@/components/Model.vue";
 
 </script>

@@ -1,7 +1,14 @@
-use axum::{extract::Multipart, Json, http::StatusCode};
+use axum::{
+    extract::{Multipart, Path},
+    Json,
+    response::{IntoResponse, Response},
+    http::{StatusCode, header},
+    body::StreamBody,
+};
 use std::{fs, path::PathBuf};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use tokio_util::io::ReaderStream;
 use uuid::Uuid;
 use serde_json::json;
 
@@ -64,6 +71,24 @@ pub async fn upload_photo(mut multipart: Multipart) -> Result<Json<serde_json::V
     
     eprintln!("No file field found in request");
     Err(StatusCode::BAD_REQUEST)
+}
+
+pub async fn get_file(Path(filename): Path<String>) -> impl IntoResponse {
+    let path = PathBuf::from(PHOTO_FOLDER).join(filename);
+    
+    match File::open(&path).await {
+        Ok(file) => {
+            let stream = ReaderStream::new(file);
+            let body = StreamBody::new(stream);
+            
+            Response::builder()
+                .header(header::CONTENT_TYPE, "application/octet-stream")
+                .body(body)
+                .unwrap()
+                .into_response()
+        }
+        Err(_) => StatusCode::NOT_FOUND.into_response()
+    }
 }
 
 pub async fn list_photos() -> Result<Json<Vec<String>>, StatusCode> {
