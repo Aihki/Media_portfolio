@@ -1,0 +1,9 @@
+/target
+/static/models/*
+/static/photos/*
+/static/videos/*
+/static/uploads/*
+!static/models/.gitkeep
+!static/photos/.gitkeep
+!static/videos/.gitkeep
+!static/uploads/.gitkeep
