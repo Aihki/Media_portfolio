@@ -1,6 +1,5 @@
 <template>
   <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-    <!-- Upload Form -->
     <div class="mb-8 border-b border-gray-700 pb-6">
       <h3 class="text-lg font-semibold mb-4 text-gray-200">Upload New Photo</h3>
       <div class="flex gap-4">
@@ -22,7 +21,7 @@
       </div>
     </div>
 
-    <!-- Loading and Error States -->
+
     <div v-if="loading" class="text-center py-4">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
     </div>
@@ -30,17 +29,25 @@
       {{ error }}
     </div>
 
-    <!-- Photos Grid -->
+
     <div v-if="!loading && photos.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div v-for="photo in photos" :key="photo" class="border border-gray-700 rounded-lg p-4 shadow-md bg-gray-900">
         <img 
-          :src="photo" 
-          :alt="`Photo ${photo.split('/').pop()}`" 
-          class="w-full h-auto aspect-video object-cover rounded"
-          @error="handleImageError"
+         :src="photo" 
+      :alt="`Photo ${photo.split('/').pop()}`" 
+      class="w-full h-auto aspect-video object-cover rounded cursor-pointer" 
+      @error="handleImageError"
+      @click="photoView = photo" 
         />
       </div>
     </div>
+ 
+
+    <PhotoView 
+      v-if="photoView" 
+      :photoUrl="photoView" 
+      @close="photoView = null" 
+    />
     <div v-if="!loading && photos.length === 0" class="text-gray-400 text-center py-4">
       No photos found
     </div>
@@ -50,11 +57,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { uploadPhoto as uploadPhotoAPI, listPhotos } from '@/api';
+import PhotoView from "@/components/PhotoView.vue";
+
 
 const photoFile = ref<File | null>(null);
 const photos = ref<string[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const photoView = ref<string | null>(null);
+
 
 const handlePhotoUpload = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];

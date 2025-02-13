@@ -38,8 +38,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import Photos from "@/components/Photos.vue";
-import Model from "@/components/Model.vue";
-import Videos from "@/components/Videos.vue";
+import Photos from "@/views/Photos.vue";
+import Model from "@/views/Model.vue";
+import Videos from "@/views/Videos.vue";
 
 </script>

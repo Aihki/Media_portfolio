@@ -30,7 +30,7 @@
       {{ error }}
     </div>
 
-    <!-- Videos Grid -->
+
     <div v-if="!loading && videos.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div v-for="video in videos" :key="video" class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
         <video 
@@ -96,7 +96,7 @@ const handleVideoError = (event: Event) => {
   const videoElement = event.target as HTMLVideoElement;
   console.error('Video loading error:', videoElement.error);
   
-  // Try to reload the video with a different source type
+
   const currentSrc = videoElement.currentSrc;
   if (currentSrc.endsWith('mp4')) {
     const webmSrc = currentSrc.replace('.mp4', '.webm');
@@ -125,11 +125,11 @@ const uploadVideo = async () => {
     
     await uploadVideoAPI(formData);
     
-    // Wait a bit before fetching the updated list
+  
     await new Promise(resolve => setTimeout(resolve, 1000));
     await fetchVideos();
     
-    // Reset form
+
     videoFile.value = null;
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     if (input) input.value = '';
