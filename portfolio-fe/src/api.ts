@@ -6,37 +6,26 @@ export function getFileUrl(filename: string) {
     return `${API_URL}/static/${filename}`;
 }
 
-export async function uploadPhoto(formData: FormData): Promise<void> {
-    try {
-        console.log('Uploading photo...');
-        const response = await axios.post(`${API_URL}/api/upload-photo`, formData, {
-            headers: { 
-                'Content-Type': 'multipart/form-data',
-                'Accept': 'application/json'
-            },
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity
-        });
-
-        console.log('Upload response:', response.data);
-        if (!response.data) {
-            throw new Error('Failed to upload photo');
-        }
-    } catch (error) {
-        console.error('Upload error:', error);
-        if (error instanceof Error) {
-            throw new Error('Failed to upload photo: ' + (error.message || 'Unknown error'));
-        } else {
-            throw new Error('Failed to upload photo: Unknown error');
-        }
+export async function uploadPhoto(formData: FormData): Promise<any> {
+    const response = await fetch(`${API_URL}/upload/photo`, {
+        method: 'POST',
+        body: formData
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
     }
+    return await response.json();
 }
 
 export async function listPhotos(): Promise<string[]> {
-    console.log('Fetching photos from:', `${API_URL}/api/photos`);
-    const response = await axios.get(`${API_URL}/api/photos`);
-    console.log('Photos response:', response.data);
-    return response.data.map((path: string) => `${API_URL}${path}`);
+    const response = await fetch(`${API_URL}/api/photos`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const paths = await response.json();
+    // Convert relative paths to full URLs
+    return paths.map((path: string) => `${API_URL}${path}`);
 }
 
 export async function uploadModel(file: File) {

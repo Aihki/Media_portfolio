@@ -41,4 +41,5 @@ import { ref } from 'vue';
 import Photos from "@/components/Photos.vue";
 import Model from "@/components/Model.vue";
 import Videos from "@/components/Videos.vue";
+
 </script>

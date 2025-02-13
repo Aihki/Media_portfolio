@@ -8,6 +8,7 @@ use crate::handlers::{photos, models, videos};
 
 pub fn create_routes() -> Router {
     Router::new()
+        .route("/upload/photo", post(photos::upload_photo)) 
         .route("/upload/model", post(models::upload_model))
         .route("/api/models", get(models::list_models))
         .route("/files/:filename", get(photos::get_file))

@@ -33,7 +33,12 @@
     <!-- Photos Grid -->
     <div v-if="!loading && photos.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div v-for="photo in photos" :key="photo" class="border border-gray-700 rounded-lg p-4 shadow-md bg-gray-900">
-        <img :src="photo" alt="Uploaded photo" class="w-full h-auto aspect-video object-cover rounded"/>
+        <img 
+          :src="photo" 
+          :alt="`Photo ${photo.split('/').pop()}`" 
+          class="w-full h-auto aspect-video object-cover rounded"
+          @error="handleImageError"
+        />
       </div>
     </div>
     <div v-if="!loading && photos.length === 0" class="text-gray-400 text-center py-4">
@@ -90,6 +95,12 @@ const uploadPhoto = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement;
+  console.error('Failed to load image:', img.src);
+  error.value = `Failed to load image: ${img.src.split('/').pop()}`;
 };
 
 onMounted(fetchPhotos);
