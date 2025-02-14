@@ -1,8 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-900 text-gray-200">
     <div class="container mx-auto px-4 py-8">
-
-      <header class="max-w-4xl mx-auto text-center mb-12">
+      <header class="max-w-4xl mx-auto text-center mb-4">
         <h1 class="text-4xl font-bold text-gray-100 mb-4">My Media Portfolio</h1>
         <p class="text-xl text-gray-400 leading-relaxed max-w-2xl mx-auto">
           Welcome to my media portfolio. Here you'll find my collection of videos, 
@@ -10,36 +9,34 @@
         </p>
       </header>
 
-      <div class="flex flex-col items-center gap-8">
-        <section class="w-full max-w-6xl">
-            <h2 class="text-2xl font-bold text-gray-100">
-              Photo Gallery
-            </h2>
-            <Photos />
-        </section>
+      <nav class="sticky top-0 bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-lg mb-8 max-w-2xl mx-auto">
+        <div class="overflow-x-auto flex space-x-6 py-2 px-4 scrollbar-hide justify-center">
+          <router-link to="/" 
+             class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0">
+            Photos
+          </router-link>
+          <router-link to="/models" 
+             class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0">
+            3D Models
+          </router-link>
+          <router-link to="/videos" 
+             class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0">
+            Videos
+          </router-link>
+        </div>
+      </nav>
 
-        <section class="w-full max-w-6xl">
-            <h2 class="text-2xl font-bold text-gray-100">
-              3D Models
-            </h2>
-            <Model />
-        </section>
-
-        <section class="w-full max-w-6xl">
-            <h2 class="text-2xl font-bold text-gray-100">
-              Videos
-            </h2>
-            <Videos />
-        </section>
-      </div>
+      <router-view></router-view>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-import Photos from "@/views/Photos.vue";
-import Model from "@/views/Model.vue";
-import Videos from "@/views/Videos.vue";
-
-</script>
+<style>
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>
