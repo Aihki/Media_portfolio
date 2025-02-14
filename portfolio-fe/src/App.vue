@@ -23,6 +23,10 @@
              class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0">
             Videos
           </router-link>
+             <router-link to="/about" 
+             class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0">
+            About Me
+          </router-link>
         </div>
       </nav>
 
