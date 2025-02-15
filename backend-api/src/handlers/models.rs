@@ -2,6 +2,7 @@ use axum::{extract::Multipart, Json, http::StatusCode};
 use std::{fs, path::PathBuf};
 use uuid::Uuid;
 use serde_json::json;
+use std::io::Write;
 
 pub const MODEL_FOLDER: &str = "static/models";
 
@@ -15,11 +16,8 @@ pub async fn upload_model(mut multipart: Multipart) -> Result<Json<serde_json::V
             .unwrap_or_else(|| format!("{}.splat", Uuid::new_v4()));
         
         println!("📦 Uploading model: {}", filename);
-        println!("Content type: {:?}", field.content_type());
-        println!("Field name: {:?}", field.name());
         
         let filepath = format!("{}/{}", MODEL_FOLDER, filename);
-        println!("📦 Saving to: {}", filepath);
         
         if !PathBuf::from(MODEL_FOLDER).exists() {
             fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
@@ -28,24 +26,21 @@ pub async fn upload_model(mut multipart: Multipart) -> Result<Json<serde_json::V
             })?;
         }
 
-        let data = field.bytes().await.map_err(|e| {
-            eprintln!("Failed to read field data: {}", e);
-            StatusCode::BAD_REQUEST
-        })?;
-
-        println!("📦 Read {} bytes of data", data.len());
-
-        if data.is_empty() {
-            eprintln!("Empty file received");
-            return Err(StatusCode::BAD_REQUEST);
-        }
-
-        std::fs::write(&filepath, &data).map_err(|e| {
-            eprintln!("Failed to write file: {}", e);
+        // Read chunks and write directly to file
+        let mut file = std::fs::File::create(&filepath).map_err(|e| {
+            eprintln!("Failed to create file: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-        println!("✅ Model file written successfully");
+        while let Some(chunk) = field.chunk().await.map_err(|e| {
+            eprintln!("Error reading chunk: {}", e);
+            StatusCode::BAD_REQUEST
+        })? {
+            file.write_all(&chunk).map_err(|e| {
+                eprintln!("Failed to write chunk: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+        }
 
         let url = format!("/static/models/{}", filename);
         println!("✅ Model saved successfully: {}", url);
