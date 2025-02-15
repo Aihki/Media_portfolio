@@ -7,7 +7,7 @@ use std::io::Write;
 pub const MODEL_FOLDER: &str = "static/models";
 
 pub async fn upload_model(mut multipart: Multipart) -> Result<Json<serde_json::Value>, StatusCode> {
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
+    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
         eprintln!("Error getting next field: {}", e);
         StatusCode::BAD_REQUEST
     })? {
