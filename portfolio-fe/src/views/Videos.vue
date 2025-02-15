@@ -1,26 +1,12 @@
 <template>
   <div class="bg-gray-800 shadow-lg rounded-lg p-6">
     <!-- Upload Form -->
-    <div class="mb-8 border-b border-gray-700 pb-6">
-      <h3 class="text-lg font-semibold mb-4 text-gray-200">Upload New Video</h3>
-      <div class="flex gap-4">
-        <div class="flex-grow">
-          <input 
-            type="file" 
-            @change="handleVideoUpload" 
-            accept="video/*"
-            class="w-full text-gray-300 file:bg-gray-700 file:border-0 file:text-gray-300 file:px-4 file:py-2 file:rounded-md file:hover:bg-gray-600"
-          />
-        </div>
-        <button 
-          @click="uploadVideo" 
-          :disabled="!videoFile"
-          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 transition-colors"
-        >
-          Upload Video
-        </button>
-      </div>
-    </div>
+   <UploadForm 
+    type="Video"
+      @upload="uploadVideo" 
+      acceptTypes="video/*" 
+      :maxSize="100 * 1024 * 1024"
+    />
 
     <!-- Loading and Error States -->
     <div v-if="loading" class="text-center py-4">
@@ -29,7 +15,6 @@
     <div v-if="error" class="text-red-400 text-center py-4">
       {{ error }}
     </div>
-
 
     <div v-if="!loading && videos.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div v-for="video in videos" :key="video" class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
@@ -55,6 +40,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { uploadVideo as uploadVideoAPI, listVideos } from '@/api';
+import UploadForm from "@/components/UploadForm.vue";
 
 const videoFile = ref<File | null>(null);
 const videos = ref<string[]>([]);

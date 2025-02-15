@@ -32,8 +32,7 @@
 defineProps<{
   photoUrl: string;
 }>();
-
-defineEmits<{
+const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 

@@ -1,26 +1,11 @@
 <template>
   <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-    <div class="mb-8 border-b border-gray-700 pb-6">
-      <h3 class="text-lg font-semibold mb-4 text-gray-200">Upload New Photo</h3>
-      <div class="flex gap-4">
-        <div class="flex-grow">
-          <input 
-            type="file" 
-            @change="handlePhotoUpload" 
-            accept="image/*" 
-            class="w-full text-gray-300 file:bg-gray-700 file:border-0 file:text-gray-300 file:px-4 file:py-2 file:rounded-md file:hover:bg-gray-600"
-          />
-        </div>
-        <button 
-          @click="uploadPhoto" 
-          :disabled="!photoFile"
-          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400 transition-colors"
-        >
-          Upload Photo
-        </button>
-      </div>
-    </div>
-
+    <UploadForm 
+      type="Photo"
+      acceptTypes="image/*"
+      :maxSize="10 * 1024 * 1024"
+      @upload="handleUpload"
+    />
 
     <div v-if="loading" class="text-center py-4">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
@@ -58,19 +43,12 @@
 import { ref, onMounted } from 'vue';
 import { uploadPhoto as uploadPhotoAPI, listPhotos } from '@/api';
 import PhotoView from "@/components/PhotoView.vue";
+import UploadForm from "@/components/UploadForm.vue";
 
-
-const photoFile = ref<File | null>(null);
 const photos = ref<string[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const photoView = ref<string | null>(null);
-
-
-const handlePhotoUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (file) photoFile.value = file;
-};
 
 const fetchPhotos = async () => {
   try {
@@ -85,21 +63,14 @@ const fetchPhotos = async () => {
   }
 };
 
-const uploadPhoto = async () => {
-  if (!photoFile.value) return;
-  
+const handleUpload = async (file: File) => {
   try {
     loading.value = true;
     const formData = new FormData();
-    formData.append('photo', photoFile.value);
+    formData.append('photo', file);
     
     await uploadPhotoAPI(formData);
     await fetchPhotos();
-    
-    // Reset form
-    photoFile.value = null;
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    if (input) input.value = '';
   } catch (err) {
     error.value = 'Failed to upload photo';
     console.error('Upload error:', err);

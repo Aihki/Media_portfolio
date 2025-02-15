@@ -1,6 +1,18 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <div v-for="model in models" :key="model" class="bg-gray-800 rounded-lg p-4">
+<div class="bg-gray-800 shadow-lg rounded-lg p-6">
+
+  <UploadForm 
+  type="Model"
+  acceptTypes=".splat"
+  @upload="handleUpload"
+/>
+<div v-if="loading" class="text-center py-4">
+  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+</div>
+<div v-if="error" class="text-red-400 text-center py-4">
+  {{ error }}
+</div>
+<div v-if="!loading && models.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <canvas :ref="el => initCanvas(el, model)" class="w-full h-48 rounded mb-2"></canvas>
       <p class="text-center text-gray-300">{{ model.split("/").pop() }}</p>
     </div>
@@ -19,6 +31,7 @@ import {
 } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import { listModels } from "@/api";
+import UploadForm from "@/components/UploadForm.vue";
 
 const models = ref([]);
 const engineMap = new Map();
