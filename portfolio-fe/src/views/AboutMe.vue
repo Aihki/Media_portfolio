@@ -9,14 +9,6 @@
         name="Your Name"
         title="photography enthusiast"
         bio="I'm a photography enthusiast who loves to capture the beauty of the world through my lens."
-        :socialLinks="[
-          { url: 'https://github.com/yourusername', icon: 'fab fa-github' },
-          {
-            url: 'https://linkedin.com/in/yourusername',
-            icon: 'fab fa-linkedin',
-          },
-          { url: 'https://twitter.com/yourusername', icon: 'fab fa-twitter' },
-        ]"
       />
     </div>
   </div>
