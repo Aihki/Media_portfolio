@@ -23,4 +23,5 @@ onMounted(() => {
       clearInterval(interval);
     }
   }, 50);
+});
 </script>
