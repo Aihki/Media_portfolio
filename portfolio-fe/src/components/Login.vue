@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-900">
+  <div class="flex items-center justify-center bg-gray-900">
     <div class="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-8">
       <h2 class="text-3xl font-bold text-center text-white mb-8">Admin Login</h2>
       
@@ -43,8 +43,10 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '../api'
+import { useAuthStore } from '../utils/AuthStore'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const username = ref('')
 const password = ref('')
 const error = ref('')
@@ -52,8 +54,8 @@ const error = ref('')
 async function handleLogin() {
   try {
     const token = await login(username.value, password.value)
-    localStorage.setItem('auth_token', token)
-    router.push('/admin')
+    authStore.setAuth(token);
+    router.push('/')
   } catch (e) {
     error.value = 'Invalid username or password'
   }

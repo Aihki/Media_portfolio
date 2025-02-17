@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-8 border-b border-gray-700 pb-6">
+   <div v-if="authStore.isAuthenticated" class="mb-8 border-b border-gray-700 pb-6">
     <h3 class="text-lg font-semibold mb-4 text-gray-200">
       Upload New {{ type }}
     </h3>
@@ -28,6 +28,9 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useAuthStore } from '../utils/AuthStore';
+
+  const authStore = useAuthStore();
 
   const props = defineProps<{
     type: 'Photo' | 'Video' | 'Model';

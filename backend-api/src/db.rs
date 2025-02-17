@@ -9,7 +9,7 @@ pub async fn connect() -> Result<Database, mongodb::error::Error> {
     
 
     match client.list_database_names(None, None).await {
-        Ok(names) => {
+        Ok(_names) => {
             println!("✅ Successfully connected to MongoDB!");
         },
         Err(e) => {
