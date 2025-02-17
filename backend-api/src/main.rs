@@ -1,19 +1,33 @@
 use std::{fs, time::Duration};
 use tower_http::cors::{CorsLayer, Any};
 use axum::http::{Method, header};
+use std::sync::Arc;
 
+mod models;
 mod handlers;
 mod routes;
+mod db;
 
-use handlers::{models, photos, videos};
+use handlers::{
+    photos::PHOTO_FOLDER,
+    models::MODEL_FOLDER,
+    videos::VIDEO_FOLDER
+};
 
 #[tokio::main]
 async fn main() {
-    for dir in [
-        photos::PHOTO_FOLDER,
-        models::MODEL_FOLDER,
-        videos::VIDEO_FOLDER,
+    dotenv::dotenv().ok();
     
+    let database = db::connect()
+        .await
+        .expect("Failed to connect to MongoDB");
+   
+    let app_state = Arc::new(database);
+
+    for dir in [
+        PHOTO_FOLDER,
+        MODEL_FOLDER,
+        VIDEO_FOLDER,
     ] {
         if let Err(e) = fs::create_dir_all(dir) {
             eprintln!("❌ Failed to create directory {}: {}", dir, e);
@@ -35,7 +49,7 @@ async fn main() {
         ])
         .max_age(Duration::from_secs(3600));
 
-    let app = routes::create_routes().layer(cors);
+    let app = routes::create_routes(app_state).layer(cors);
 
     let addr = "127.0.0.1:3000";
     println!("🚀 Server running at http://{}", addr);

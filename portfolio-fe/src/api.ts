@@ -152,3 +152,29 @@ export async function listVideos(): Promise<string[]> {
     return [];
   }
 }
+
+export async function login(username: string, password: string): Promise<string> {
+  const response = await axios.post(`${API_URL}/api/login`, {
+    username,
+    password
+  });
+  
+  if (response.data && response.data.token) {
+    // Set the token in axios defaults for future requests
+    axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+    return response.data.token;
+  }
+  
+  throw new Error('Login failed');
+}
+
+// Add this to check if user is logged in
+export function isLoggedIn(): boolean {
+  return !!localStorage.getItem('auth_token');
+}
+
+// Add this to handle logout
+export function logout(): void {
+  localStorage.removeItem('auth_token');
+  delete axios.defaults.headers.common['Authorization'];
+}
