@@ -141,25 +141,34 @@ const handleFileUpload = (event: Event) => {
 };
 
 const handleUpload = async () => {
-  if (!file.value || !name.value) return;
-  
-  const categoryId = selectedCategory.value;
-  if (!categoryId) {
-    error.value = 'Please select or create a category';
+  error.value = null;
+
+  if (!file.value || !name.value || !selectedCategory.value) {
+    error.value = 'Please fill in all required fields';
     return;
   }
 
-  emit('upload', {
-    file: file.value,
-    name: name.value,
-    categoryId
-  });
+  try {
+    // Create plain object without reactive references
+    const uploadData = {
+      file: file.value,
+      name: name.value,
+      categoryId: selectedCategory.value
+    };
 
-  // Reset form
-  file.value = null;
-  name.value = '';
-  selectedCategory.value = '';
-  const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-  if (input) input.value = '';
+    console.log('UploadForm sending:', uploadData);
+    
+    emit('upload', uploadData);
+
+    // Only reset after successful emit
+    file.value = null;
+    name.value = '';
+    selectedCategory.value = '';
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (input) input.value = '';
+  } catch (err) {
+    console.error('Upload error:', err);
+    error.value = 'Upload failed';
+  }
 };
 </script>

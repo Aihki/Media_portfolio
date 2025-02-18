@@ -62,15 +62,27 @@
   const cleanupFunctions = ref<(() => void)[]>([]);
   const modelView = ref<string | null>(null);
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (uploadData: { file: File; name: string; categoryId: string }) => {
     try {
       loading.value = true;
       error.value = null;
-      await uploadModel(file);
-      await fetchModels(); // Add this function to refetch models after upload
+
+      console.log('Model upload data:', {
+        file: uploadData.file,
+        name: uploadData.name,
+        categoryId: uploadData.categoryId
+      });
+
+      const data = {
+        file: uploadData.file,
+        name: uploadData.name,
+        categoryId: typeof uploadData.categoryId === 'object' ? uploadData.categoryId.$oid : uploadData.categoryId
+      };
+
+      await uploadModel(data);
+      await fetchModels();
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : 'Failed to upload model';
+      error.value = err instanceof Error ? err.message : 'Failed to upload model';
       console.error('Upload error:', err);
     } finally {
       loading.value = false;

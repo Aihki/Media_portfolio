@@ -110,30 +110,26 @@
     videoElement.load();
   };
 
-  const uploadVideo = async () => {
-    if (!videoFile.value) return;
-
+  const uploadVideo = async (uploadData: { file: File; name: string; categoryId: string }) => {
     try {
       loading.value = true;
       error.value = null;
 
-      const formData = new FormData();
-      formData.append('video', videoFile.value, videoFile.value.name);
-      formData.append('type', videoFile.value.type);
+      console.log('Uploading video:', {
+        file: uploadData.file.name,
+        name: uploadData.name,
+        categoryId: uploadData.categoryId
+      });
 
-      await uploadVideoAPI(formData);
+      await uploadVideoAPI({
+        file: uploadData.file,
+        name: uploadData.name,
+        categoryId: typeof uploadData.categoryId === 'object' ? uploadData.categoryId.$oid : uploadData.categoryId
+      });
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchVideos();
-
-      videoFile.value = null;
-      const input = document.querySelector(
-        'input[type="file"]'
-      ) as HTMLInputElement;
-      if (input) input.value = '';
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : 'Failed to upload video';
+      error.value = err instanceof Error ? err.message : 'Failed to upload video';
       console.error('Upload error:', err);
     } finally {
       loading.value = false;

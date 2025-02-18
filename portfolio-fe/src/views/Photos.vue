@@ -73,19 +73,28 @@
     }
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (uploadData: { file: File; name: string; categoryId: { $oid: string } | string }) => {
     try {
-      loading.value = true;
-      const formData = new FormData();
-      formData.append('photo', file);
+      console.log('Photos component received:', {
+        hasFile: !!uploadData.file,
+        fileName: uploadData.file?.name,
+        name: uploadData.name,
+        categoryId: uploadData.categoryId
+      });
 
-      await uploadPhotoAPI(formData);
+      const data = {
+        file: uploadData.file,
+        name: uploadData.name,
+        categoryId: typeof uploadData.categoryId === 'object' && '$oid' in uploadData.categoryId 
+          ? uploadData.categoryId.$oid 
+          : uploadData.categoryId
+      };
+
+      await uploadPhotoAPI(data);
       await fetchPhotos();
-    } catch (err) {
-      error.value = 'Failed to upload photo';
-      console.error('Upload error:', err);
-    } finally {
-      loading.value = false;
+    } catch (error) {
+      console.error('Upload error:', error);
+      error.value = error instanceof Error ? error.message : 'Failed to upload photo';
     }
   };
 
@@ -94,6 +103,5 @@
     console.error('Failed to load image:', img.src);
     error.value = `Failed to load image: ${img.src.split('/').pop()}`;
   };
-
   onMounted(fetchPhotos);
 </script>

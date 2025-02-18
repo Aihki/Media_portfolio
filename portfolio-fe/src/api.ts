@@ -6,36 +6,78 @@ export function getFileUrl(filename: string) {
   return `${API_URL}/static/${filename}`;
 }
 
-interface Category {
-    _id?: string;
-    name: string;
-}
+type Category = {
+  $oid: string;
+  name: string;
+};
 
 export async function listCategories(): Promise<Category[]> {
-    const response = await axios.get(`${API_URL}/api/categories`);
-    return response.data;
+  const response = await axios.get(`${API_URL}/api/categories`);
+  console.log('Categories from server:', response.data); // Debug log
+  return response.data;
 }
 
 export async function createCategory(name: string): Promise<Category> {
-    const response = await axios.post<Category>(`${API_URL}/api/categories`, { name });
-    return response.data;  // Now returns the complete Category object
+  const response = await axios.post<Category>(`${API_URL}/api/categories`, {
+    name,
+  });
+  console.log('Created category:', response.data); // Debug log
+  return response.data;
 }
 
-export async function uploadPhoto(data: { file: File; name: string; categoryId: string }): Promise<any> {
+
+export async function uploadPhoto(data: { 
+  file: File; 
+  name: string; 
+  categoryId: string;
+}): Promise<any> {
+  // Validate each field individually for better error messages
+  if (!data) {
+    throw new Error('No upload data provided');
+  }
+  if (!data.file) {
+    throw new Error('No file provided');
+  }
+  if (!data.name) {
+    throw new Error('No name provided');
+  }
+  if (!data.categoryId) {
+    throw new Error('No category provided');
+  }
+
   const formData = new FormData();
   formData.append('file', data.file);
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
+
+  // Verify FormData contents
+  console.log('Sending FormData:', {
+    file: data.file.name,
+    name: data.name,
+    category: data.categoryId
+  });
 
   const response = await fetch(`${API_URL}/upload/photo`, {
     method: 'POST',
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+  try {
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
+      throw new Error(errorText || response.statusText);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw new Error('Failed to upload photo');
   }
-  return await response.json();
 }
 
 export async function listPhotos(): Promise<string[]> {
@@ -48,9 +90,26 @@ export async function listPhotos(): Promise<string[]> {
   return paths.map((path: string) => `${API_URL}${path}`);
 }
 
-export async function uploadModel(file: File) {
+export async function uploadModel(data: { 
+  file: File; 
+  name: string; 
+  categoryId: string;
+}): Promise<any> {
+  if (!data?.file || !data?.name || !data?.categoryId) {
+    console.error('Missing upload data:', data);
+    throw new Error('Missing required upload data');
+  }
+
   const formData = new FormData();
-  formData.append('model', file);
+  formData.append('file', data.file);
+  formData.append('name', data.name);
+  formData.append('category', data.categoryId);
+
+  console.log('Sending model data:', {
+    file: data.file.name,
+    name: data.name,
+    category: data.categoryId
+  });
 
   const response = await axios.post(`${API_URL}/upload/model`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -75,43 +134,41 @@ export async function listModels(): Promise<string[]> {
   }
 }
 
-export async function uploadVideo(formData: FormData): Promise<void> {
-  try {
-    const response = await retryRequest(() =>
-      axios.post(`${API_URL}/api/upload-video`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Accept: 'application/json',
-        },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-        responseType: 'json',
-        timeout: 60000,
-        validateStatus: status => status < 500,
-      })
-    );
-
-    if (!response.data) {
-      throw new Error('No response from server');
-    }
-
-    if (response.data.error) {
-      throw new Error(response.data.error);
-    }
-  } catch (error) {
-    console.error('Upload error details:', error);
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        throw new Error(
-          `Upload failed: ${error.response.data?.message || error.response.statusText}`
-        );
-      } else if (error.request) {
-        throw new Error('Server not responding. Please try again.');
-      }
-    }
-    throw new Error('Failed to upload video. Please try again.');
+export async function uploadVideo(data: {
+  file: File;
+  name: string;
+  categoryId: string;
+}): Promise<void> {
+  if (!data?.file || !data?.name || !data?.categoryId) {
+    console.error('Missing upload data:', data);
+    throw new Error('Missing required upload data');
   }
+
+  const formData = new FormData();
+  formData.append('file', data.file);
+  formData.append('name', data.name);
+  formData.append('category', data.categoryId);
+
+  const response = await axios.post(`${API_URL}/api/upload-video`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Accept: 'application/json',
+    },
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
+  });
+
+  if (!response.data) {
+    throw new Error('No response from server');
+  }
+
+  if (response.data.error) {
+    throw new Error(response.data.error);
+  }
+
+  return response.data;
 }
+
 async function retryRequest<T>(
   fn: () => Promise<T>,
   retries = 3,
@@ -173,18 +230,22 @@ export async function listVideos(): Promise<string[]> {
   }
 }
 
-export async function login(username: string, password: string): Promise<string> {
+export async function login(
+  username: string,
+  password: string
+): Promise<string> {
   const response = await axios.post(`${API_URL}/api/login`, {
     username,
-    password
+    password,
   });
-  
+
   if (response.data && response.data.token) {
     // Set the token in axios defaults for future requests
-    axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+    axios.defaults.headers.common['Authorization'] =
+      `Bearer ${response.data.token}`;
     return response.data.token;
   }
-  
+
   throw new Error('Login failed');
 }
 
