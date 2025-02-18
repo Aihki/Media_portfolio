@@ -17,8 +17,8 @@ export async function listCategories(): Promise<Category[]> {
 }
 
 export async function createCategory(name: string): Promise<Category> {
-    const response = await axios.post(`${API_URL}/api/categories`, { name });
-    return response.data;
+    const response = await axios.post<Category>(`${API_URL}/api/categories`, { name });
+    return response.data;  // Now returns the complete Category object
 }
 
 export async function uploadPhoto(data: { file: File; name: string; categoryId: string }): Promise<any> {

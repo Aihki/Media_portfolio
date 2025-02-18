@@ -117,11 +117,12 @@ async function createNewCategory() {
   
   try {
     const newCategory = await createCategory(newCategoryName.value);
-    categories.value.push(newCategory);
-    selectedCategory.value = newCategory._id!;
+    categories.value = [...categories.value, newCategory];  // Add to list using spread operator
+    selectedCategory.value = newCategory.id!;
     showNewCategory.value = false;
     newCategoryName.value = '';
   } catch (err) {
+    console.error('Failed to create category:', err);
     error.value = 'Failed to create new category';
   }
 }
