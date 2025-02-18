@@ -6,7 +6,27 @@ export function getFileUrl(filename: string) {
   return `${API_URL}/static/${filename}`;
 }
 
-export async function uploadPhoto(formData: FormData): Promise<any> {
+interface Category {
+    _id?: string;
+    name: string;
+}
+
+export async function listCategories(): Promise<Category[]> {
+    const response = await axios.get(`${API_URL}/api/categories`);
+    return response.data;
+}
+
+export async function createCategory(name: string): Promise<Category> {
+    const response = await axios.post(`${API_URL}/api/categories`, { name });
+    return response.data;
+}
+
+export async function uploadPhoto(data: { file: File; name: string; categoryId: string }): Promise<any> {
+  const formData = new FormData();
+  formData.append('file', data.file);
+  formData.append('name', data.name);
+  formData.append('category', data.categoryId);
+
   const response = await fetch(`${API_URL}/upload/photo`, {
     method: 'POST',
     body: formData,
