@@ -22,22 +22,27 @@
     >
       <div
         v-for="photo in photos"
-        :key="photo"
+        :key="photo.id"
         class="border border-gray-700 rounded-lg p-4 shadow-md bg-gray-900"
       >
         <img
-          :src="photo"
-          :alt="`Photo ${photo.split('/').pop()}`"
+          :src="photo.url"
+          :alt="photo.name"
           class="w-full h-auto aspect-video object-cover rounded cursor-pointer"
           @error="handleImageError"
-          @click="photoView = photo"
+          @click="photoView = { url: photo.url, name: photo.name }"
         />
+        <div class="mt-2 text-gray-300">
+          <h3 class="font-semibold">{{ photo.name }}</h3>
+          <p class="text-sm text-gray-400">Category: {{ photo.category_name }}</p>
+        </div>
       </div>
     </div>
 
     <PhotoView
       v-if="photoView"
-      :photoUrl="photoView"
+      :photoUrl="photoView.url"
+      :photoName="photoView.name"
       @close="photoView = null"
     />
     <div
@@ -51,20 +56,21 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import { uploadPhoto as uploadPhotoAPI, listPhotos } from '@/api';
+  import { uploadPhoto as uploadPhotoAPI, getPhotosWithDetails, type Photo } from '@/api';
   import PhotoView from '@/components/PhotoView.vue';
   import UploadForm from '@/components/UploadForm.vue';
 
-  const photos = ref<string[]>([]);
+  const photos = ref<Photo[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
-  const photoView = ref<string | null>(null);
+  const photoView = ref<{ url: string; name: string } | null>(null);
 
   const fetchPhotos = async () => {
     try {
       loading.value = true;
       error.value = null;
-      photos.value = await listPhotos();
+      photos.value = await getPhotosWithDetails();
+      console.log('Loaded photos with details:', photos.value);
     } catch (err) {
       error.value = 'Failed to load photos';
       console.error('Error loading photos:', err);

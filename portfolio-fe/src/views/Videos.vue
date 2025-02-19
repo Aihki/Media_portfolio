@@ -24,7 +24,7 @@
     >
       <div
         v-for="video in videos"
-        :key="video"
+        :key="video.id"
         class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900"
       >
         <video
@@ -34,10 +34,14 @@
           preload="metadata"
           crossorigin="anonymous"
         >
-          <source :src="video" type="video/mp4" />
-          <source :src="video" type="video/webm" />
+          <source :src="video.url" type="video/mp4" />
+          <source :src="video.url" type="video/webm" />
           Your browser does not support the video tag.
         </video>
+        <div class="p-4 text-gray-300">
+          <h3 class="font-semibold">{{ video.name }}</h3>
+          <p class="text-sm text-gray-400">Category: {{ video.category_name }}</p>
+        </div>
       </div>
     </div>
     <div
@@ -51,11 +55,11 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import { uploadVideo as uploadVideoAPI, listVideos } from '@/api';
+  import { getVideosWithDetails, type Video, uploadVideo as uploadVideoAPI } from '@/api';
   import UploadForm from '@/components/UploadForm.vue';
 
   const videoFile = ref<File | null>(null);
-  const videos = ref<string[]>([]);
+  const videos = ref<Video[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -82,7 +86,7 @@
     try {
       loading.value = true;
       error.value = null;
-      videos.value = await listVideos();
+      videos.value = await getVideosWithDetails();
     } catch (err) {
       error.value = 'Failed to load videos';
       console.error('Error loading videos:', err);

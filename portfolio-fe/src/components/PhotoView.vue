@@ -12,17 +12,15 @@
         ×
       </button>
 
-      <!-- Image -->
       <img
         :src="photoUrl"
-        :alt="photoUrl.split('/').pop()"
+        :alt="photoName"
         class="max-w-full max-h-[80vh] object-contain rounded-lg"
         @click.stop
       />
 
-      <!-- Optional: filename display -->
       <div class="mt-2 text-center text-white">
-        {{ photoUrl.split("/").pop() }}
+        {{ photoName }}
       </div>
     </div>
   </div>
@@ -31,6 +29,7 @@
 <script setup lang="ts">
 defineProps<{
   photoUrl: string;
+  photoName: string;
 }>();
 const emit = defineEmits<{
   (e: "close"): void;

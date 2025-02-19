@@ -18,18 +18,26 @@
     >
       <div
         v-for="model in models"
-        :key="model"
+        :key="model.id"
         class="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700 cursor-pointer"
         @click="openModel(model)"
       >
         <canvas
-          :ref="el => initCanvas(el, model)"
+          :ref="el => initCanvas(el, model.url)"
           class="w-full h-48 rounded mb-2"
         ></canvas>
-        <p class="text-center text-gray-300">{{ model.split('/').pop() }}</p>
+        <div class="mt-2 text-gray-300">
+          <h3 class="font-semibold">{{ model.name }}</h3>
+          <p class="text-sm text-gray-400">Category: {{ model.category_name }}</p>
+        </div>
       </div>
     </div>
-    <ModelView v-if="modelView" :model="modelView" @close="modelView = null" />
+    <ModelView 
+      v-if="modelView" 
+      :model="modelView.url"
+      :modelName="modelView.name"
+      @close="modelView = null" 
+    />
 
     <div
       v-if="!loading && models.length === 0"
@@ -51,16 +59,16 @@
     HemisphericLight,
   } from '@babylonjs/core';
   import '@babylonjs/loaders';
-  import { listModels, uploadModel } from '@/api';
+  import { getModelsWithDetails, uploadModel, type Model } from '@/api';
   import UploadForm from '@/components/UploadForm.vue';
   import ModelView from '@/components/ModelView.vue';
 
-  const models = ref([]);
+  const models = ref<Model[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const engineMap = new Map();
   const cleanupFunctions = ref<(() => void)[]>([]);
-  const modelView = ref<string | null>(null);
+  const modelView = ref<Model | null>(null);
 
   const handleUpload = async (uploadData: { file: File; name: string; categoryId: string }) => {
     try {
@@ -93,7 +101,7 @@
     try {
       loading.value = true;
       error.value = null;
-      models.value = await listModels();
+      models.value = await getModelsWithDetails();
     } catch (err) {
       error.value = 'Failed to load models';
       console.error('Error loading models:', err);
@@ -198,7 +206,7 @@
     });
   });
 
-  const openModel = (model: string) => {
+  const openModel = (model: Model) => {
     modelView.value = model;
   };
 </script>

@@ -25,13 +25,35 @@ export async function createCategory(name: string): Promise<Category> {
   return response.data;
 }
 
+export type Photo = {
+  id: string;
+  name: string;
+  filename: string;
+  url: string;
+  category_id: string;
+  category_name: string; 
+  created_at: string;
+};
+
+export async function getPhotosWithDetails(): Promise<Photo[]> {
+  console.log('🔍 Fetching photos with details...');
+  const response = await axios.get(`${API_URL}/api/photos/details`);
+  console.log('📸 Received photos:', response.data);
+  
+  const photosWithFullUrls = response.data.map((photo: Photo) => ({
+    ...photo,
+    url: `${API_URL}${photo.url}`
+  }));
+  
+  console.log('🖼️ Photos with full URLs:', photosWithFullUrls);
+  return photosWithFullUrls;
+}
 
 export async function uploadPhoto(data: { 
   file: File; 
   name: string; 
   categoryId: string;
 }): Promise<any> {
-  // Validate each field individually for better error messages
   if (!data) {
     throw new Error('No upload data provided');
   }
@@ -258,4 +280,52 @@ export function isLoggedIn(): boolean {
 export function logout(): void {
   localStorage.removeItem('auth_token');
   delete axios.defaults.headers.common['Authorization'];
+}
+
+export type Video = {
+  id: string;
+  name: string;
+  filename: string;
+  url: string;
+  category_id: string;
+  category_name: string;
+  created_at: string;
+};
+
+export type Model = {
+  id: string;
+  name: string;
+  filename: string;
+  url: string;
+  category_id: string;
+  category_name: string;
+  created_at: string;
+};
+
+export async function getModelsWithDetails(): Promise<Model[]> {
+  console.log('🔍 Fetching models with details...');
+  const response = await axios.get(`${API_URL}/api/models/details`);
+  console.log('📦 Received models:', response.data);
+  
+  const modelsWithFullUrls = response.data.map((model: Model) => ({
+    ...model,
+    url: `${API_URL}${model.url}`
+  }));
+  
+  console.log('🎮 Models with full URLs:', modelsWithFullUrls);
+  return modelsWithFullUrls;
+}
+
+export async function getVideosWithDetails(): Promise<Video[]> {
+  console.log('🔍 Fetching videos with details...');
+  const response = await axios.get(`${API_URL}/api/videos/details`);
+  console.log('🎥 Received videos:', response.data);
+  
+  const videosWithFullUrls = response.data.map((video: Video) => ({
+    ...video,
+    url: `${API_URL}${video.url}`
+  }));
+  
+  console.log('📽️ Videos with full URLs:', videosWithFullUrls);
+  return videosWithFullUrls;
 }

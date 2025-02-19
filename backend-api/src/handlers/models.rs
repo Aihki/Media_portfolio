@@ -5,10 +5,11 @@ use axum::{
 };
 use std::{fs, path::PathBuf, sync::Arc};
 use mongodb::Database;
-use crate::models::Model;  
+use crate::models::{Model, ModelResponse, Category};  
 use serde_json::json;
 use std::io::Write;
 use uuid::Uuid;
+use futures_util::StreamExt;
 
 pub const MODEL_FOLDER: &str = "static/models";
 
@@ -123,4 +124,50 @@ pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
         },
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
+}
+
+pub async fn get_models(
+    State(db): State<Arc<Database>>
+) -> Result<Json<Vec<ModelResponse>>, StatusCode> {
+    println!("📦 Fetching models from MongoDB");
+    
+    let models_collection = db.collection::<Model>("models");
+    let categories_collection = db.collection::<Category>("category");
+    
+    // Get all categories
+    let mut categories_vec = Vec::new();
+    let mut cursor = categories_collection.find(None, None).await.map_err(|e| {
+        eprintln!("Failed to query categories: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    
+    while let Some(result) = cursor.next().await {
+        match result {
+            Ok(category) => categories_vec.push(category),
+            Err(e) => eprintln!("Error reading category: {}", e),
+        }
+    }
+
+    // Get all models with category names
+    let mut cursor = models_collection.find(None, None).await.map_err(|e| {
+        eprintln!("Failed to query models: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let mut models = Vec::new();
+    while let Some(result) = cursor.next().await {
+        match result {
+            Ok(model) => {
+                let mut model_response = model.to_response();
+                model_response.category_name = categories_vec.iter()
+                    .find(|c| c.id.unwrap_or_default() == model.category_id)
+                    .map(|c| c.name.clone())
+                    .unwrap_or_else(|| "Unknown Category".to_string());
+                models.push(model_response);
+            },
+            Err(e) => eprintln!("Error reading model: {}", e),
+        }
+    }
+
+    Ok(Json(models))
 }

@@ -5,7 +5,8 @@ use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 use serde_json::json;
 use mongodb::Database;
-use crate::models::Video;
+use crate::models::{Video, VideoResponse, Category};
+use futures_util::StreamExt;
 
 pub const VIDEO_FOLDER: &str = "static/videos";
 
@@ -135,4 +136,55 @@ pub async fn list_videos() -> Result<Json<Vec<String>>, StatusCode> {
         },
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
+}
+
+pub async fn get_videos(
+    State(db): State<Arc<Database>>
+) -> Result<Json<Vec<VideoResponse>>, StatusCode> {
+    println!("🎥 Fetching videos from MongoDB");
+    
+    let videos_collection = db.collection::<Video>("videos");
+    let categories_collection = db.collection::<Category>("category");
+    
+    // Debug: Print collection names
+    println!("📚 Collections in use:");
+    println!("   - Videos: {}", videos_collection.name());
+    println!("   - Categories: {}", categories_collection.name());
+    
+    // Get all categories
+    let mut categories_vec = Vec::new();
+    let mut cursor = categories_collection.find(None, None).await.map_err(|e| {
+        eprintln!("Failed to query categories: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    
+    while let Some(result) = cursor.next().await {
+        match result {
+            Ok(category) => categories_vec.push(category),
+            Err(e) => eprintln!("Error reading category: {}", e),
+        }
+    }
+
+    // Get all videos with category names
+    let mut cursor = videos_collection.find(None, None).await.map_err(|e| {
+        eprintln!("Failed to query videos: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let mut videos = Vec::new();
+    while let Some(result) = cursor.next().await {
+        match result {
+            Ok(video) => {
+                let mut video_response = video.to_response();
+                video_response.category_name = categories_vec.iter()
+                    .find(|c| c.id.unwrap_or_default() == video.category_id)
+                    .map(|c| c.name.clone())
+                    .unwrap_or_else(|| "Unknown Category".to_string());
+                videos.push(video_response);
+            },
+            Err(e) => eprintln!("Error reading video: {}", e),
+        }
+    }
+
+    Ok(Json(videos))
 }

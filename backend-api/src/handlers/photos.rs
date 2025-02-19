@@ -12,7 +12,8 @@ use tokio_util::io::ReaderStream;
 use uuid::Uuid;
 use serde_json::json;
 use mongodb::Database;
-use crate::models::Photo;
+use crate::models::{Photo, PhotoResponse, Category}; 
+use futures_util::StreamExt;
 
 pub const PHOTO_FOLDER: &str = "static/photos";
 
@@ -190,6 +191,90 @@ pub async fn list_photos() -> Result<Json<Vec<String>>, StatusCode> {
         },
         Err(e) => {
             eprintln!("❌ Error reading photos: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn get_photos(
+    State(db): State<Arc<Database>>
+) -> Result<Json<Vec<PhotoResponse>>, StatusCode> {
+    println!("📸 Fetching photos from MongoDB");
+    
+    let photos_collection = db.collection::<Photo>("photos");
+    let categories_collection = db.collection::<Category>("category"); 
+    
+    println!("🔍 Checking category collection");
+    let categories = categories_collection.find(None, None).await.map_err(|e| {
+        eprintln!("Failed to query category collection: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let mut categories_vec = Vec::new();
+    let mut cursor = categories;
+    
+    while let Some(category_result) = cursor.next().await {
+        match category_result {
+            Ok(category) => {
+                println!("📁 Found category: id={}, name={}", 
+                    category.id.as_ref().map(|id| id.to_hex()).unwrap_or_default(),
+                    category.name
+                );
+                categories_vec.push(category);
+            },
+            Err(e) => {
+                eprintln!("Error reading category: {}", e);
+            }
+        }
+    }
+    println!("📊 Total categories found: {}", categories_vec.len());
+
+    match photos_collection.find(None, None).await {
+        Ok(mut cursor) => {
+            let mut photos = Vec::new();
+            while let Some(result) = cursor.next().await {
+                match result {
+                    Ok(photo) => {
+                        println!("\n🔍 Processing photo: {}", photo.name);
+                        println!("   Looking for category ID: {}", photo.category_id.to_hex());
+                        
+                        // Debug: Print all category IDs we're comparing against
+                        println!("   Comparing against categories:");
+                        for cat in &categories_vec {
+                            if let Some(id) = cat.id {
+                                println!("   - {} ({})", id.to_hex(), cat.name);
+                                if id.to_hex() == photo.category_id.to_hex() {
+                                    println!("     ✅ Match found!");
+                                }
+                            }
+                        }
+
+                        let category_name = categories_vec.iter()
+                            .find(|c| c.id.unwrap_or_default().to_hex() == photo.category_id.to_hex())
+                            .map(|c| {
+                                println!("   ✅ Found matching category: {}", c.name);
+                                c.name.clone()
+                            })
+                            .unwrap_or_else(|| {
+                                println!("   ⚠️ No category found for ID");
+                                "Unknown Category".to_string()
+                            });
+
+                        let mut photo_response = photo.to_response();
+                        photo_response.category_name = category_name;
+                        photos.push(photo_response);
+                    },
+                    Err(e) => {
+                        eprintln!("Error processing photo: {}", e);
+                        continue;
+                    }
+                }
+            }
+            println!("📸 Found {} photos in database", photos.len());
+            Ok(Json(photos))
+        },
+        Err(e) => {
+            eprintln!("❌ Error fetching photos from MongoDB: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
