@@ -8,7 +8,8 @@ export default {
     extend: {
       animation: {
         'typewriter': 'typing 3s ease-out forwards',
-        'caret': 'blink 1s steps(2) infinite'
+        'caret': 'blink 1s steps(2) infinite',
+        'spin-slow': 'spin 20s linear infinite', 
       },
       keyframes: {
         typing: {
@@ -18,9 +19,18 @@ export default {
         blink: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0' }
+        },
+        spin: {
+          from: {
+            transform: 'rotate(0deg)'
+          },
+          to: {  
+            transform: 'rotate(360deg)'
+          }
         }
       }
     },
   },
   plugins: [],
 }
+
