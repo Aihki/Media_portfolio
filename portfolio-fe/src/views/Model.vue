@@ -1,6 +1,6 @@
 <template>
   <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-    <UploadForm type="Model" acceptTypes=".splat" @upload="handleUpload" />
+    <UploadForm type="Model" acceptTypes=".splat, .obj" @upload="handleUpload" />
 
     <div v-if="loading" class="text-center py-4">
       <div

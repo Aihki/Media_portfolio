@@ -14,9 +14,9 @@
       <canvas ref="canvasRef" class="w-full h-full rounded-lg"></canvas>
 
       <div
-        class="absolute bottom-4 left-4 text-white bg-gray-800 bg-opacity-75 px-3 py-1 rounded"
+        class="absolute top-4 left-4 text-white bg-gray-800 bg-opacity-75 px-3 py-1 rounded"
       >
-        {{ model.split('/').pop() }}
+        {{ modelName }}
       </div>
     </div>
   </div>
@@ -35,6 +35,7 @@
 
   const props = defineProps<{
     model: string;
+    modelName: string;
   }>();
 
   const emit = defineEmits<{
