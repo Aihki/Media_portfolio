@@ -1,6 +1,21 @@
 <template>
   <div class="min-h-screen bg-gray-900 text-gray-200">
-    <div class="container mx-auto px-4 py-8">
+    <div class="background">
+      <!-- Add more boxes -->
+      <div v-for="n in 8" :key="n" 
+           class="box"
+           :style="{
+             top: `${Math.random() * 100}%`,
+             left: `${Math.random() * 100}%`,
+             width: `${Math.random() * 100 + 50}px`,
+             height: `${Math.random() * 100 + 50}px`,
+             animationDuration: `${Math.random() * 20 + 10}s`,
+             animationDirection: n % 2 ? 'normal' : 'reverse'
+           }">
+      </div>
+    </div>
+    
+    <div class="container mx-auto px-4 py-8 relative">
       <header class="max-w-4xl mx-auto text-center mb-4">
         <h1 class="text-4xl font-bold text-gray-100 mb-4">
           My Media Portfolio
@@ -57,5 +72,37 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+  }
+
+  .box {
+    position: absolute;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(1px);
+    animation: rotate linear infinite;
+    border-radius: 2px;
+    background: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.02),
+      rgba(255, 255, 255, 0.01)
+    );
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg) translate(30px) rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg) translate(30px) rotate(-360deg);
+    }
   }
 </style>

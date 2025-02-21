@@ -1,5 +1,4 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-gray-200">
     <div class="container mx-auto px-4 py-8">
       <header class="max-w-4xl mx-auto text-center mb-8">
         <h1 class="text-4xl font-bold text-gray-100 mb-4">About Me</h1>
@@ -11,7 +10,6 @@
         bio="I'm a photography enthusiast who loves to capture the beauty of the world through my lens."
       />
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
