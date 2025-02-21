@@ -57,6 +57,12 @@
           >
             About Me
           </router-link>
+          <router-link
+            to="/sandbox"
+            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
+          >
+            Sandbox
+          </router-link>
         </div>
       </nav>
 
