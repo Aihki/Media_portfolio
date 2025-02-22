@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-900 text-gray-200">
     <div class="background">
       <!-- Add more boxes -->
-      <div v-for="n in 8" :key="n" 
+      <div v-for="n in 4" :key="n" 
            class="box"
            :style="{
              top: `${Math.random() * 100}%`,
@@ -52,16 +52,16 @@
             Videos
           </router-link>
           <router-link
-            to="/about"
-            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
-          >
-            About Me
-          </router-link>
-          <router-link
             to="/sandbox"
             class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
           >
             Sandbox
+          </router-link>
+          <router-link
+            to="/about"
+            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
+          >
+            About Me
           </router-link>
         </div>
       </nav>

@@ -11,7 +11,6 @@
     <div v-if="error" class="text-red-400 text-center py-4">
       {{ error }}
     </div>
-
     <div
       v-if="!loading && models.length > 0"
       class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -198,7 +197,6 @@
     }
   }
 
-  // Cleanup on component unmount
   onUnmounted(() => {
     engineMap.forEach(({ engine, scene }) => {
       scene.dispose();
