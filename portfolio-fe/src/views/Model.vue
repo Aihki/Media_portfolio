@@ -1,53 +1,62 @@
 <template>
-  <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-    <UploadForm type="Model" acceptTypes=".splat, .obj" @upload="handleUpload" />
-
-    <div v-if="loading" class="text-center py-4">
-      <div
-        class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
-      ></div>
-    </div>
-
-    <div v-if="error" class="text-red-400 text-center py-4">
-      {{ error }}
-    </div>
-    <div
-      v-if="!loading && models.length > 0"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-    >
-      <div
-        v-for="model in models"
-        :key="model.id"
-        class="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700 cursor-pointer"
-        @click="openModel(model)"
-      >
-        <canvas
-          :ref="el => initCanvas(el, model.url)"
-          class="w-full h-48 rounded mb-2"
-        ></canvas>
-        <div class="mt-2 text-gray-300">
-          <h3 class="font-semibold">{{ model.name }}</h3>
-          <p class="text-sm text-gray-400">Category: {{ model.category_name }}</p>
-        </div>
+  <div class="flex flex-col gap-6">
+    <div v-if="authStore.isAuthenticated" class="bg-gray-800 shadow-lg rounded-lg p-6">
+      <h2 class="text-xl font-bold text-gray-200 mb-4">Upload New Model</h2>
+      <div class="border-2 border-gray-700 rounded-lg p-4">
+        <UploadForm type="Model" acceptTypes=".splat, .obj" @upload="handleUpload" />
       </div>
     </div>
+
+    <div class="bg-gray-800 shadow-lg rounded-lg p-6">
+      <h2 class="text-xl font-bold text-gray-200 mb-4">Model Gallery</h2>
+      <div v-if="loading" class="text-center py-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+      </div>
+
+      <div v-if="error" class="text-red-400 text-center py-4">
+        {{ error }}
+      </div>
+
+      <div
+        v-if="!loading && models.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        <div
+          v-for="model in models"
+          :key="model.id"
+          class="bg-gray-700 rounded-lg p-4 shadow-md cursor-pointer hover:bg-gray-600 transition-colors"
+          @click="openModel(model)"
+        >
+          <canvas
+            :ref="el => initCanvas(el, model.url)"
+            class="w-full h-48 rounded mb-2"
+          ></canvas>
+          <div class="mt-2 text-gray-300">
+            <h3 class="font-semibold">{{ model.name }}</h3>
+            <p class="text-sm text-gray-400">Category: {{ model.category_name }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="!loading && models.length === 0"
+        class="text-gray-400 text-center py-4"
+      >
+        No models found
+      </div>
+    </div>
+
     <ModelView 
       v-if="modelView" 
       :model="modelView.url"
       :modelName="modelView.name"
       @close="modelView = null" 
     />
-
-    <div
-      v-if="!loading && models.length === 0"
-      class="text-gray-400 text-center py-4"
-    >
-      No models found
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { useAuthStore } from '@/utils/AuthStore';
   import { onMounted, ref, onUnmounted } from 'vue';
   import {
     Engine,
@@ -62,6 +71,7 @@
   import UploadForm from '@/components/UploadForm.vue';
   import ModelView from '@/components/ModelView.vue';
 
+  const authStore = useAuthStore();
   const models = ref<Model[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);

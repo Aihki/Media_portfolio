@@ -22,7 +22,7 @@
         </h1>
         <p class="text-xl text-gray-400 leading-relaxed max-w-2xl mx-auto">
           Welcome to my media portfolio. Here you'll find my collection of
-          videos, 3D splats, ComfyUI-enhanced images, and personal photography
+          videos, 3D splats, and personal photography
           work.
         </p>
       </header>

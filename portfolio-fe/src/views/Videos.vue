@@ -1,54 +1,60 @@
 <template>
-  <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-    <!-- Upload Form -->
-    <UploadForm
-      type="Video"
-      @upload="uploadVideo"
-      acceptTypes="video/*"
-      :maxSize="100 * 1024 * 1024"
-    />
-
-    <!-- Loading and Error States -->
-    <div v-if="loading" class="text-center py-4">
-      <div
-        class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
-      ></div>
-    </div>
-    <div v-if="error" class="text-red-400 text-center py-4">
-      {{ error }}
-    </div>
-
-    <div
-      v-if="!loading && videos.length > 0"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-    >
-      <div
-        v-for="video in videos"
-        :key="video.id"
-        class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900"
-      >
-        <video
-          controls
-          class="w-full aspect-video"
-          @error="handleVideoError"
-          preload="metadata"
-          crossorigin="anonymous"
-        >
-          <source :src="video.url" type="video/mp4" />
-          <source :src="video.url" type="video/webm" />
-          Your browser does not support the video tag.
-        </video>
-        <div class="p-4 text-gray-300">
-          <h3 class="font-semibold">{{ video.name }}</h3>
-          <p class="text-sm text-gray-400">Category: {{ video.category_name }}</p>
-        </div>
+  <div class="flex flex-col gap-6">
+    <div v-if="authStore.isAuthenticated" class="bg-gray-800 shadow-lg rounded-lg p-6">
+      <h2 class="text-xl font-bold text-gray-200 mb-4">Upload New Video</h2>
+      <div class="border-2 border-gray-700 rounded-lg p-4">
+        <UploadForm
+          type="Video"
+          @upload="uploadVideo"
+          acceptTypes="video/*"
+          :maxSize="100 * 1024 * 1024"
+        />
       </div>
     </div>
-    <div
-      v-if="!loading && videos.length === 0"
-      class="text-gray-400 text-center py-4"
-    >
-      No videos found
+
+    <div class="bg-gray-800 shadow-lg rounded-lg p-6">
+      <h2 class="text-xl font-bold text-gray-200 mb-4">Video Gallery</h2>
+      <div v-if="loading" class="text-center py-4">
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
+        ></div>
+      </div>
+      <div v-if="error" class="text-red-400 text-center py-4">
+        {{ error }}
+      </div>
+
+      <div
+        v-if="!loading && videos.length > 0"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        <div
+          v-for="video in videos"
+          :key="video.id"
+          class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900"
+        >
+          <video
+            controls
+            class="w-full aspect-video"
+            @error="handleVideoError"
+            preload="metadata"
+            crossorigin="anonymous"
+          >
+            <source :src="video.url" type="video/mp4" />
+            <source :src="video.url" type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+          <div class="p-4 text-gray-300">
+            <h3 class="font-semibold">{{ video.name }}</h3>
+            <p class="text-sm text-gray-400">Category: {{ video.category_name }}</p>
+          </div>
+        </div>
+      </div>
+      <div
+        v-if="!loading && videos.length === 0"
+        class="text-gray-400 text-center py-4"
+      >
+        No videos found
+      </div>
     </div>
   </div>
 </template>
@@ -57,11 +63,13 @@
   import { ref, onMounted } from 'vue';
   import { getVideosWithDetails, type Video, uploadVideo as uploadVideoAPI } from '@/api';
   import UploadForm from '@/components/UploadForm.vue';
+  import { useAuthStore } from '@/utils/AuthStore';
 
   const videoFile = ref<File | null>(null);
   const videos = ref<Video[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const authStore = useAuthStore();
 
   const handleVideoUpload = (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
