@@ -329,3 +329,14 @@ export async function getVideosWithDetails(): Promise<Video[]> {
   console.log('📽️ Videos with full URLs:', videosWithFullUrls);
   return videosWithFullUrls;
 }
+
+export type Stats = {
+  photos_count: number;
+  models_count: number;
+  videos_count: number;
+};
+
+export async function getStats(): Promise<Stats> {
+  const response = await axios.get(`${API_URL}/api/stats`);
+  return response.data;
+}

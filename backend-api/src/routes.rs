@@ -4,7 +4,7 @@ use axum::{
     extract::DefaultBodyLimit,
 };
 use tower_http::services::ServeDir;
-use crate::handlers::{photos, models, videos, categories};
+use crate::handlers::{photos, models, videos, categories, stats};
 use std::sync::Arc;
 use mongodb::Database;
 use crate::handlers::auth::login_handler;
@@ -24,6 +24,7 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/photos/details", get(photos::get_photos))
         .route("/api/models/details", get(models::get_models))
         .route("/api/videos/details", get(videos::get_videos))
+        .route("/api/stats", get(stats::get_stats))
         .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
         .nest_service("/static/models", ServeDir::new(models::MODEL_FOLDER))
         .nest_service("/static/videos", ServeDir::new(videos::VIDEO_FOLDER))

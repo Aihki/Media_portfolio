@@ -6,6 +6,8 @@ import About from "../views/AboutMe.vue";
 import Login from "../components/Login.vue";
 import Sandbox from "../views/Sandbox.vue";
 import Welcome from "../views/Welcome.vue";
+import { useAuthStore } from '../utils/AuthStore';
+
 
 const router = createRouter({
   history: createWebHistory(),
@@ -39,6 +41,9 @@ const router = createRouter({
       path:"/welcome",
       name:"welcome",
       component: Welcome,
+      meta: {
+        requiresAuth: true
+      }
     },
     {
       path: "/sandbox",
@@ -47,5 +52,23 @@ const router = createRouter({
     }
   ],
 });
+router.beforeEach((to, _from, next) => {
+  const authStore = useAuthStore();
+
+  if (to.meta.requiresAuth) {
+    if (!authStore.isAuthenticated) {
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      });
+    } else {
+      next(); 
+    }
+  } else {
+    next(); 
+  }
+});
+
+
 
 export default router;
