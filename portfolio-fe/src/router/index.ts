@@ -5,6 +5,7 @@ import Videos from "../views/Videos.vue";
 import About from "../views/AboutMe.vue";
 import Login from "../components/Login.vue";
 import Sandbox from "../views/Sandbox.vue";
+import Welcome from "../views/Welcome.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -33,6 +34,11 @@ const router = createRouter({
       path:"/login",
       name:"login",
       component: Login,
+    },
+    {
+      path:"/welcome",
+      name:"welcome",
+      component: Welcome,
     },
     {
       path: "/sandbox",

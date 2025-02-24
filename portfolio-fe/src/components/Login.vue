@@ -55,7 +55,7 @@ async function handleLogin() {
   try {
     const token = await login(username.value, password.value)
     authStore.setAuth(token);
-    router.push('/')
+    router.push('/welcome')
   } catch (e) {
     error.value = 'Invalid username or password'
   }
