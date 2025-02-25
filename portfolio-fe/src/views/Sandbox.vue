@@ -9,7 +9,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import * as BABYLON from '@babylonjs/core';
-import '@babylonjs/loaders'; // Add this import for loaders
+import '@babylonjs/loaders';
 
 const canvas = ref<HTMLCanvasElement | null>(null);
 const engine = ref<BABYLON.Engine | null>(null);
@@ -66,13 +66,13 @@ const createScene = (): void => {
     BABYLON.SceneLoader.ImportMeshAsync(
         '',
         'http://localhost:3000/static/models/',
-        'gundam.splat',
+        'gundam1.splat',
         scene.value
     ).then(result => {
         console.log('Model loaded successfully:', result);
         if (result.meshes.length > 0) {
             const model = result.meshes[0];
-            model.position = BABYLON.Vector3.Zero();
+            model.position = new BABYLON.Vector3(0, 2, 0);
             model.scaling = new BABYLON.Vector3(1, 1, 1);
             console.log('Model positioned and scaled');
         }
