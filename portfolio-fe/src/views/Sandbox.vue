@@ -21,14 +21,13 @@ const createScene = (): void => {
     
     scene.value = new BABYLON.Scene(engine.value);
     
-    // Position camera further back to see the model
+
     camera.value = new BABYLON.UniversalCamera(
         "FPCamera",
         new BABYLON.Vector3(0, 2, -10),
         scene.value
     );
 
-    // Add light
     const light = new BABYLON.HemisphericLight(
         'light',
         new BABYLON.Vector3(0, 1, 0),
