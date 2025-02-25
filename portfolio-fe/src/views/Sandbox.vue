@@ -24,7 +24,7 @@ const createScene = (): void => {
     // Position camera further back to see the model
     camera.value = new BABYLON.UniversalCamera(
         "FPCamera",
-        new BABYLON.Vector3(0, 2, -10), // Moved back to -10
+        new BABYLON.Vector3(0, 2, -10),
         scene.value
     );
 
