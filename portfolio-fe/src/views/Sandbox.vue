@@ -6,7 +6,7 @@
           v-for="model in models"
           :key="model.id"
           @click="loadModel(model)"
-          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex-shrink-0"
+          class="px-4 py-2 bg-green-e rounded hover:bg-green-700 transition-colors flex-shrink-0"
         >
           {{ model.name }}
         </button>
@@ -15,7 +15,7 @@
     </div>
   </div>
 </template>
-
+600 text-whit
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import * as BABYLON from '@babylonjs/core';

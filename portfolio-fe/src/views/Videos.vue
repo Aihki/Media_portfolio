@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-6">
     <div v-if="authStore.isAuthenticated" class="bg-gray-800 shadow-lg rounded-lg p-6">
-      <h2 class="text-xl font-bold text-gray-200 mb-4">Upload New Video</h2>
+      <h2 class="text-xl font-bold text-gray-200 mb-4 text-center">Upload New Video</h2>
       <div class="border-2 border-gray-700 rounded-lg p-4">
         <UploadForm
           type="Video"

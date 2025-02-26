@@ -19,6 +19,23 @@
           <TypewriterText :text="bio" />
         </div>
 
+        <!-- Add Contact Links Section -->
+        <div class="mt-6 border-t border-gray-700 pt-4">
+          <h3 class="text-lg font-semibold text-gray-100 mb-3">Contact Me</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <a
+              v-for="contact in contactLinks"
+              :key="contact.label"
+              :href="contact.url"
+              target="_blank"
+              class="flex items-center space-x-2 text-gray-400 hover:text-gray-100 transition-colors"
+            >
+              <i :class="contact.icon" class="text-lg"></i>
+              <span>{{ contact.label }}</span>
+            </a>
+          </div>
+        </div>
+
         <div v-if="socialLinks" class="flex space-x-4 mt-4">
           <a
             v-for="link in socialLinks"
@@ -43,6 +60,11 @@ defineProps<{
   title: string;
   bio: string;
   socialLinks?: Array<{
+    url: string;
+    icon: string;
+  }>;
+  contactLinks: Array<{
+    label: string;
     url: string;
     icon: string;
   }>;

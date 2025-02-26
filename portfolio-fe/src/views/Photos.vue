@@ -1,6 +1,9 @@
 <template>
   <div class="flex flex-col gap-6">
-    <div v-if="authStore.isAuthenticated" class="bg-gray-800 shadow-lg rounded-lg p-6">
+    <div
+      v-if="authStore.isAuthenticated"
+      class="bg-gray-800 shadow-lg rounded-lg p-6"
+    >
       <h2 class="text-xl font-bold text-gray-200 mb-4">Upload New Photo</h2>
       <div class="border-2 border-gray-700 rounded-lg p-4">
         <UploadForm
@@ -13,7 +16,9 @@
     </div>
 
     <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-      <h2 class="text-xl font-bold text-gray-200 mb-4">Photo Gallery</h2>
+      <h2 class="text-xl font-bold text-gray-200 mb-4 text-center">
+        Photo Gallery
+      </h2>
       <div v-if="loading" class="text-center py-4">
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
@@ -41,7 +46,9 @@
           />
           <div class="mt-2 text-gray-300">
             <h3 class="font-semibold">{{ photo.name }}</h3>
-            <p class="text-sm text-gray-400">Category: {{ photo.category_name }}</p>
+            <p class="text-sm text-gray-400">
+              Category: {{ photo.category_name }}
+            </p>
           </div>
         </div>
       </div>
@@ -64,7 +71,11 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import { uploadPhoto as uploadPhotoAPI, getPhotosWithDetails, type Photo } from '@/api';
+  import {
+    uploadPhoto as uploadPhotoAPI,
+    getPhotosWithDetails,
+    type Photo,
+  } from '@/api';
   import PhotoView from '@/components/PhotoView.vue';
   import UploadForm from '@/components/UploadForm.vue';
   import { useAuthStore } from '@/utils/AuthStore';
@@ -89,28 +100,35 @@
     }
   };
 
-  const handleUpload = async (uploadData: { file: File; name: string; categoryId: { $oid: string } | string }) => {
+  const handleUpload = async (uploadData: {
+    file: File;
+    name: string;
+    categoryId: { $oid: string } | string;
+  }) => {
     try {
       console.log('Photos component received:', {
         hasFile: !!uploadData.file,
         fileName: uploadData.file?.name,
         name: uploadData.name,
-        categoryId: uploadData.categoryId
+        categoryId: uploadData.categoryId,
       });
 
       const data = {
         file: uploadData.file,
         name: uploadData.name,
-        categoryId: typeof uploadData.categoryId === 'object' && '$oid' in uploadData.categoryId 
-          ? uploadData.categoryId.$oid 
-          : uploadData.categoryId
+        categoryId:
+          typeof uploadData.categoryId === 'object' &&
+          '$oid' in uploadData.categoryId
+            ? uploadData.categoryId.$oid
+            : uploadData.categoryId,
       };
 
       await uploadPhotoAPI(data);
       await fetchPhotos();
     } catch (error) {
       console.error('Upload error:', error);
-      error.value = error instanceof Error ? error.message : 'Failed to upload photo';
+      error.value =
+        error instanceof Error ? error.message : 'Failed to upload photo';
     }
   };
 

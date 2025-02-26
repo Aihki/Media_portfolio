@@ -1,16 +1,27 @@
 <template>
   <div class="flex flex-col gap-6">
-    <div v-if="authStore.isAuthenticated" class="bg-gray-800 shadow-lg rounded-lg p-6">
+    <div
+      v-if="authStore.isAuthenticated"
+      class="bg-gray-800 shadow-lg rounded-lg p-6"
+    >
       <h2 class="text-xl font-bold text-gray-200 mb-4">Upload New Model</h2>
       <div class="border-2 border-gray-700 rounded-lg p-4">
-        <UploadForm type="Model" acceptTypes=".splat, .obj" @upload="handleUpload" />
+        <UploadForm
+          type="Model"
+          acceptTypes=".splat, .obj"
+          @upload="handleUpload"
+        />
       </div>
     </div>
 
     <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-      <h2 class="text-xl font-bold text-gray-200 mb-4">Model Gallery</h2>
+      <h2 class="text-xl font-bold text-gray-200 mb-4 text-center">
+        Model Gallery
+      </h2>
       <div v-if="loading" class="text-center py-4">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
+        ></div>
       </div>
 
       <div v-if="error" class="text-red-400 text-center py-4">
@@ -33,7 +44,9 @@
           ></canvas>
           <div class="mt-2 text-gray-300">
             <h3 class="font-semibold">{{ model.name }}</h3>
-            <p class="text-sm text-gray-400">Category: {{ model.category_name }}</p>
+            <p class="text-sm text-gray-400">
+              Category: {{ model.category_name }}
+            </p>
           </div>
         </div>
       </div>
@@ -46,11 +59,11 @@
       </div>
     </div>
 
-    <ModelView 
-      v-if="modelView" 
+    <ModelView
+      v-if="modelView"
       :model="modelView.url"
       :modelName="modelView.name"
-      @close="modelView = null" 
+      @close="modelView = null"
     />
   </div>
 </template>
@@ -79,7 +92,11 @@
   const cleanupFunctions = ref<(() => void)[]>([]);
   const modelView = ref<Model | null>(null);
 
-  const handleUpload = async (uploadData: { file: File; name: string; categoryId: string }) => {
+  const handleUpload = async (uploadData: {
+    file: File;
+    name: string;
+    categoryId: string;
+  }) => {
     try {
       loading.value = true;
       error.value = null;
@@ -87,19 +104,23 @@
       console.log('Model upload data:', {
         file: uploadData.file,
         name: uploadData.name,
-        categoryId: uploadData.categoryId
+        categoryId: uploadData.categoryId,
       });
 
       const data = {
         file: uploadData.file,
         name: uploadData.name,
-        categoryId: typeof uploadData.categoryId === 'object' ? uploadData.categoryId.$oid : uploadData.categoryId
+        categoryId:
+          typeof uploadData.categoryId === 'object'
+            ? uploadData.categoryId.$oid
+            : uploadData.categoryId,
       };
 
       await uploadModel(data);
       await fetchModels();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to upload model';
+      error.value =
+        err instanceof Error ? err.message : 'Failed to upload model';
       console.error('Upload error:', err);
     } finally {
       loading.value = false;

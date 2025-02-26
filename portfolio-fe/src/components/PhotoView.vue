@@ -4,7 +4,6 @@
     @click="handleBackdropClick"
   >
     <div class="relative max-w-4xl max-h-[90vh] p-4">
-      <!-- Close button -->
       <button
         @click="$emit('close')"
         class="absolute -top-4 -right-4 bg-gray-800 text-white w-8 h-8 rounded-full hover:bg-gray-700"
