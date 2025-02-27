@@ -117,7 +117,7 @@ async function createNewCategory() {
   
   try {
     const newCategory = await createCategory(newCategoryName.value);
-    categories.value = [...categories.value, newCategory];  // Add to list using spread operator
+    categories.value = [...categories.value, newCategory]; 
     selectedCategory.value = newCategory.id!;
     showNewCategory.value = false;
     newCategoryName.value = '';
@@ -149,7 +149,7 @@ const handleUpload = async () => {
   }
 
   try {
-    // Create plain object without reactive references
+    
     const uploadData = {
       file: file.value,
       name: name.value,
@@ -160,7 +160,6 @@ const handleUpload = async () => {
     
     emit('upload', uploadData);
 
-    // Only reset after successful emit
     file.value = null;
     name.value = '';
     selectedCategory.value = '';

@@ -40,7 +40,7 @@ impl Photo {
             filename: self.filename.clone(),
             url: format!("/static/photos/{}", self.filename),
             category_id: self.category_id.to_string(),
-            category_name: String::new(),  // Add this, it will be set later
+            category_name: String::new(), 
             created_at: self.created_at,
         }
     }

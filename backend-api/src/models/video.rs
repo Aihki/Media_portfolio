@@ -40,7 +40,7 @@ impl Video {
             filename: self.filename.clone(),
             url: format!("/static/videos/{}", self.filename),
             category_id: self.category_id.to_string(),
-            category_name: String::new(),  // Will be set in handler
+            category_name: String::new(), 
             created_at: self.created_at,
         }
     }

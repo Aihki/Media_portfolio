@@ -35,9 +35,17 @@
         <div
           v-for="model in models"
           :key="model.id"
-          class="bg-gray-700 rounded-lg p-4 shadow-md cursor-pointer hover:bg-gray-600 transition-colors"
+          class="bg-gray-700 rounded-lg p-4 shadow-md relative"
           @click="openModel(model)"
         >
+          <button
+            v-if="authStore.isAuthenticated"
+            @click.stop="deleteModel(model.id)"
+            class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors z-10"
+            aria-label="Delete model"
+          >
+            <i class="pi pi-trash"></i>
+          </button>
           <canvas
             :ref="el => initCanvas(el, model.url)"
             class="w-full h-48 rounded mb-2"
@@ -80,7 +88,7 @@
     HemisphericLight,
   } from '@babylonjs/core';
   import '@babylonjs/loaders';
-  import { getModelsWithDetails, uploadModel, type Model } from '@/api';
+  import { getModelsWithDetails, uploadModel, deleteModel as deleteModelAPI, type Model } from '@/api';
   import UploadForm from '@/components/UploadForm.vue';
   import ModelView from '@/components/ModelView.vue';
 
@@ -154,7 +162,7 @@
 
       const scene = new Scene(engine);
 
-      // Add light to the scene
+
       const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
       light.intensity = 1.0;
 
@@ -185,7 +193,7 @@
       };
       window.addEventListener('resize', resizeHandler);
 
-      // Store cleanup function instead of calling onUnmounted directly
+
       cleanupFunctions.value.push(() => {
         window.removeEventListener('resize', resizeHandler);
         if (engineMap.has(modelUrl)) {
@@ -201,7 +209,7 @@
     }
   }
 
-  // Single onUnmounted handler for the component
+
   onUnmounted(() => {
     cleanupFunctions.value.forEach(cleanup => cleanup());
     cleanupFunctions.value = [];
@@ -237,5 +245,20 @@
 
   const openModel = (model: Model) => {
     modelView.value = model;
+  };
+
+  const deleteModel = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this model?')) return;
+    
+    try {
+      loading.value = true;
+      await deleteModelAPI(id);
+      await fetchModels(); // Refresh the list
+    } catch (err) {
+      error.value = 'Failed to delete model';
+      console.error('Delete error:', err);
+    } finally {
+      loading.value = false;
+    }
   };
 </script>

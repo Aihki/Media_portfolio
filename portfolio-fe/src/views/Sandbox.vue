@@ -67,7 +67,7 @@
   const isRotating = ref(false);
   let rotationAnimation: number | null = null;
 
-  // Add rotation animation
+
   const startRotation = () => {
     if (!currentMesh || !scene.value) return;
 
@@ -94,7 +94,6 @@
     }
   };
 
-  // Update loadModel to show loading state
   const loadModel = async (model: Model) => {
     if (!scene.value) return;
 

@@ -1,4 +1,9 @@
-use axum::{extract::{Multipart, State}, Json, http::StatusCode};
+use axum::{
+    extract::{Multipart, State, Path as AxumPath},
+    Json,
+    http::StatusCode,
+};
+use mongodb::bson::oid::ObjectId;
 use std::{fs, path::PathBuf, sync::Arc};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
@@ -7,6 +12,7 @@ use serde_json::json;
 use mongodb::Database;
 use crate::models::{Video, VideoResponse, Category};
 use futures_util::StreamExt;
+use mongodb::bson::doc;
 
 pub const VIDEO_FOLDER: &str = "static/videos";
 
@@ -62,7 +68,7 @@ pub async fn upload_video(
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
-                // Process chunks
+       
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
                     StatusCode::BAD_REQUEST
@@ -82,16 +88,15 @@ pub async fn upload_video(
         }
     }
 
-    // Validate fields
     if name.is_empty() || category_id.is_empty() || saved_filename.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    // Convert category_id to ObjectId
+
     let category_object_id = mongodb::bson::oid::ObjectId::parse_str(&category_id)
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    // Create and save video document
+
     let video = Video::new(name, saved_filename.clone(), category_object_id);
     
     match db.collection::<Video>("videos")
@@ -146,12 +151,12 @@ pub async fn get_videos(
     let videos_collection = db.collection::<Video>("videos");
     let categories_collection = db.collection::<Category>("category");
     
-    // Debug: Print collection names
+
     println!("📚 Collections in use:");
     println!("   - Videos: {}", videos_collection.name());
     println!("   - Categories: {}", categories_collection.name());
     
-    // Get all categories
+
     let mut categories_vec = Vec::new();
     let mut cursor = categories_collection.find(None, None).await.map_err(|e| {
         eprintln!("Failed to query categories: {}", e);
@@ -165,7 +170,6 @@ pub async fn get_videos(
         }
     }
 
-    // Get all videos with category names
     let mut cursor = videos_collection.find(None, None).await.map_err(|e| {
         eprintln!("Failed to query videos: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
@@ -187,4 +191,20 @@ pub async fn get_videos(
     }
 
     Ok(Json(videos))
+}
+
+pub async fn delete_video(
+    State(db): State<Arc<Database>>,
+    AxumPath(id): AxumPath<String>,
+) -> Result<StatusCode, StatusCode> {
+    let object_id = ObjectId::parse_str(&id)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    match db.collection::<Video>("videos")
+        .delete_one(doc! { "_id": object_id }, None)
+        .await {
+        Ok(result) if result.deleted_count == 1 => Ok(StatusCode::NO_CONTENT),
+        Ok(_) => Err(StatusCode::NOT_FOUND),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }

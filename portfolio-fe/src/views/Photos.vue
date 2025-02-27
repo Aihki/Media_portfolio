@@ -37,13 +37,23 @@
           :key="photo.id"
           class="border border-gray-700 rounded-lg p-4 shadow-md bg-gray-900"
         >
-          <img
-            :src="photo.url"
-            :alt="photo.name"
-            class="w-full h-auto aspect-video object-cover rounded cursor-pointer"
-            @error="handleImageError"
-            @click="photoView = { url: photo.url, name: photo.name }"
-          />
+          <div class="relative">
+            <img
+              :src="photo.url"
+              :alt="photo.name"
+              class="w-full h-auto aspect-video object-cover rounded cursor-pointer"
+              @error="handleImageError"
+              @click="photoView = { url: photo.url, name: photo.name }"
+            />
+            <button
+              v-if="authStore.isAuthenticated"
+              @click="deletePhoto(photo.id)"
+              class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors"
+              aria-label="Delete photo"
+            >
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
           <div class="mt-2 text-gray-300">
             <h3 class="font-semibold">{{ photo.name }}</h3>
             <p class="text-sm text-gray-400">
@@ -74,6 +84,7 @@
   import {
     uploadPhoto as uploadPhotoAPI,
     getPhotosWithDetails,
+    deletePhoto as deletePhotoAPI,
     type Photo,
   } from '@/api';
   import PhotoView from '@/components/PhotoView.vue';
@@ -137,5 +148,21 @@
     console.error('Failed to load image:', img.src);
     error.value = `Failed to load image: ${img.src.split('/').pop()}`;
   };
+
+  const deletePhoto = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this photo?')) return;
+    
+    try {
+      loading.value = true;
+      await deletePhotoAPI(id);
+      await fetchPhotos(); // Refresh the list
+    } catch (err) {
+      error.value = 'Failed to delete photo';
+      console.error('Delete error:', err);
+    } finally {
+      loading.value = false;
+    }
+  };
+
   onMounted(fetchPhotos);
 </script>

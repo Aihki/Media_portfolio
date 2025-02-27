@@ -30,8 +30,16 @@
         <div
           v-for="video in videos"
           :key="video.id"
-          class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900"
+          class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900 relative"
         >
+          <button
+            v-if="authStore.isAuthenticated"
+            @click="deleteVideo(video.id)"
+            class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors z-10"
+            aria-label="Delete video"
+          >
+            <i class="pi pi-trash"></i>
+          </button>
           <video
             controls
             class="w-full aspect-video"
@@ -61,7 +69,7 @@
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import { getVideosWithDetails, type Video, uploadVideo as uploadVideoAPI } from '@/api';
+  import { getVideosWithDetails, type Video, uploadVideo as uploadVideoAPI, deleteVideo as deleteVideoAPI } from '@/api';
   import UploadForm from '@/components/UploadForm.vue';
   import { useAuthStore } from '@/utils/AuthStore';
 
@@ -81,7 +89,6 @@
     }
 
     if (file.size > 100 * 1024 * 1024) {
-      // 100MB limit
       error.value = 'Video file is too large. Maximum size is 100MB';
       return;
     }
@@ -118,7 +125,6 @@
 
     error.value = 'Error loading video. Trying alternative format...';
 
-    // Attempt to load the video again
     videoElement.load();
   };
 
@@ -143,6 +149,21 @@
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to upload video';
       console.error('Upload error:', err);
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deleteVideo = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this video?')) return;
+    
+    try {
+      loading.value = true;
+      await deleteVideoAPI(id);
+      await fetchVideos(); // Refresh the list
+    } catch (err) {
+      error.value = 'Failed to delete video';
+      console.error('Delete error:', err);
     } finally {
       loading.value = false;
     }

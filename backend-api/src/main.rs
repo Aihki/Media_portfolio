@@ -37,7 +37,12 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::DELETE,
+            Method::OPTIONS  
+        ])
         .allow_headers([
             header::CONTENT_TYPE,
             header::ACCEPT,
@@ -46,6 +51,8 @@ async fn main() {
             header::CONTENT_LENGTH,
             header::CACHE_CONTROL,
             header::PRAGMA,
+            header::ACCESS_CONTROL_REQUEST_METHOD,  
+            header::ACCESS_CONTROL_REQUEST_HEADERS, 
         ])
         .max_age(Duration::from_secs(3600));
 

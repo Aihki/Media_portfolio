@@ -14,6 +14,8 @@ use serde_json::json;
 use mongodb::Database;
 use crate::models::{Photo, PhotoResponse, Category}; 
 use futures_util::StreamExt;
+use mongodb::bson::doc;
+use mongodb::bson::oid::ObjectId;
 
 pub const PHOTO_FOLDER: &str = "static/photos";
 
@@ -105,7 +107,7 @@ pub async fn upload_photo(
         }
     }
 
-    // Validate required fields
+
     if name.is_empty() || category_id.is_empty() || saved_filename.is_empty() {
         eprintln!("Missing required fields: name={}, category={}, filename={}", 
             !name.is_empty(), 
@@ -115,7 +117,7 @@ pub async fn upload_photo(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    // Convert category_id string to ObjectId
+
     let category_object_id = match mongodb::bson::oid::ObjectId::parse_str(&category_id) {
         Ok(oid) => oid,
         Err(e) => {
@@ -124,10 +126,10 @@ pub async fn upload_photo(
         }
     };
 
-    // Create photo document
+
     let photo = Photo::new(name, saved_filename.clone(), category_object_id);
 
-    // Save to MongoDB
+
     match db.collection::<Photo>("photos")
         .insert_one(photo, None)
         .await {
@@ -238,7 +240,7 @@ pub async fn get_photos(
                         println!("\n🔍 Processing photo: {}", photo.name);
                         println!("   Looking for category ID: {}", photo.category_id.to_hex());
                         
-                        // Debug: Print all category IDs we're comparing against
+       
                         println!("   Comparing against categories:");
                         for cat in &categories_vec {
                             if let Some(id) = cat.id {
@@ -277,5 +279,21 @@ pub async fn get_photos(
             eprintln!("❌ Error fetching photos from MongoDB: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
+    }
+}
+
+pub async fn delete_photo(
+    State(db): State<Arc<Database>>,
+    AxumPath(id): AxumPath<String>,
+) -> Result<StatusCode, StatusCode> {
+    let object_id = ObjectId::parse_str(&id)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    match db.collection::<Photo>("photos")
+        .delete_one(doc! { "_id": object_id }, None)
+        .await {
+        Ok(result) if result.deleted_count == 1 => Ok(StatusCode::NO_CONTENT),
+        Ok(_) => Err(StatusCode::NOT_FOUND),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }

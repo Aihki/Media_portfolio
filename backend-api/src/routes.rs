@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{get, post, delete},
     extract::DefaultBodyLimit,
 };
 use tower_http::services::ServeDir;
@@ -25,6 +25,9 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/models/details", get(models::get_models))
         .route("/api/videos/details", get(videos::get_videos))
         .route("/api/stats", get(stats::get_stats))
+        .route("/api/models/:id", delete(models::delete_model))
+        .route("/api/photos/:id", delete(photos::delete_photo))
+        .route("/api/videos/:id", delete(videos::delete_video))
         .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
         .nest_service("/static/models", ServeDir::new(models::MODEL_FOLDER))
         .nest_service("/static/videos", ServeDir::new(videos::VIDEO_FOLDER))

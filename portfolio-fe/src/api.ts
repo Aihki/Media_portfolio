@@ -13,7 +13,7 @@ type Category = {
 
 export async function listCategories(): Promise<Category[]> {
   const response = await axios.get(`${API_URL}/api/categories`);
-  console.log('Categories from server:', response.data); // Debug log
+  console.log('Categories from server:', response.data); 
   return response.data;
 }
 
@@ -21,7 +21,7 @@ export async function createCategory(name: string): Promise<Category> {
   const response = await axios.post<Category>(`${API_URL}/api/categories`, {
     name,
   });
-  console.log('Created category:', response.data); // Debug log
+  console.log('Created category:', response.data); 
   return response.data;
 }
 
@@ -72,7 +72,7 @@ export async function uploadPhoto(data: {
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
-  // Verify FormData contents
+
   console.log('Sending FormData:', {
     file: data.file.name,
     name: data.name,
@@ -108,7 +108,7 @@ export async function listPhotos(): Promise<string[]> {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const paths = await response.json();
-  // Convert relative paths to full URLs
+
   return paths.map((path: string) => `${API_URL}${path}`);
 }
 
@@ -262,7 +262,7 @@ export async function login(
   });
 
   if (response.data && response.data.token) {
-    // Set the token in axios defaults for future requests
+
     axios.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.token}`;
     return response.data.token;
@@ -271,12 +271,12 @@ export async function login(
   throw new Error('Login failed');
 }
 
-// Add this to check if user is logged in
+
 export function isLoggedIn(): boolean {
   return !!localStorage.getItem('auth_token');
 }
 
-// Add this to handle logout
+
 export function logout(): void {
   localStorage.removeItem('auth_token');
   delete axios.defaults.headers.common['Authorization'];
@@ -339,4 +339,16 @@ export type Stats = {
 export async function getStats(): Promise<Stats> {
   const response = await axios.get(`${API_URL}/api/stats`);
   return response.data;
+}
+
+export async function deletePhoto(id: string): Promise<void> {
+  await axios.delete(`${API_URL}/api/photos/${id}`);
+}
+
+export async function deleteModel(id: string): Promise<void> {
+  await axios.delete(`${API_URL}/api/models/${id}`);
+}
+
+export async function deleteVideo(id: string): Promise<void> {
+  await axios.delete(`${API_URL}/api/videos/${id}`);
 }
