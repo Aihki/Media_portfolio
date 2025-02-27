@@ -48,7 +48,7 @@
             <button
               v-if="authStore.isAuthenticated"
               @click="deletePhoto(photo.id)"
-              class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors"
+              class="absolute bottom-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 transition-colors"
               aria-label="Delete photo"
             >
               <i class="pi pi-trash"></i>
@@ -155,7 +155,7 @@
     try {
       loading.value = true;
       await deletePhotoAPI(id);
-      await fetchPhotos(); // Refresh the list
+      await fetchPhotos();
     } catch (err) {
       error.value = 'Failed to delete photo';
       console.error('Delete error:', err);

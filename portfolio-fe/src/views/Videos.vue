@@ -35,7 +35,7 @@
           <button
             v-if="authStore.isAuthenticated"
             @click="deleteVideo(video.id)"
-            class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-2 transition-colors z-10"
+            class="absolute bottom-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 transition-colors z-10"
             aria-label="Delete video"
           >
             <i class="pi pi-trash"></i>
@@ -160,7 +160,7 @@
     try {
       loading.value = true;
       await deleteVideoAPI(id);
-      await fetchVideos(); // Refresh the list
+      await fetchVideos();
     } catch (err) {
       error.value = 'Failed to delete video';
       console.error('Delete error:', err);

@@ -45,7 +45,7 @@ pub async fn upload_model(
                 
                 let filepath = format!("{}/{}", MODEL_FOLDER, filename);
                 
-                if (!PathBuf::from(MODEL_FOLDER).exists()) {
+                if !PathBuf::from(MODEL_FOLDER).exists() {
                     fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
                         eprintln!("Failed to create directory: {}", e);
                         StatusCode::INTERNAL_SERVER_ERROR
@@ -75,7 +75,7 @@ pub async fn upload_model(
     }
 
 
-    if (name.is_empty() || category_id.is_empty() || saved_filename.is_empty()) {
+    if name.is_empty() || category_id.is_empty() || saved_filename.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
 
@@ -103,7 +103,7 @@ pub async fn upload_model(
 }
 
 pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
-    if (!PathBuf::from(MODEL_FOLDER).exists()) {
+    if !PathBuf::from(MODEL_FOLDER).exists() {
         fs::create_dir_all(MODEL_FOLDER)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
@@ -113,7 +113,7 @@ pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
             let models = paths
                 .filter_map(|entry| {
                     entry.ok().and_then(|e| {
-                        if (e.path().is_file()) {
+                        if e.path().is_file() {
                             Some(format!("/static/models/{}", 
                                 e.file_name().to_string_lossy()))
                         } else {

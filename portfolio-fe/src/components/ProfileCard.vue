@@ -19,7 +19,6 @@
           <TypewriterText :text="bio" />
         </div>
 
-        <!-- Add Contact Links Section -->
         <div class="mt-6 border-t border-gray-700 pt-4">
           <h3 class="text-lg font-semibold text-gray-100 mb-3">Contact Me</h3>
           <div class="grid grid-cols-2 gap-3">
