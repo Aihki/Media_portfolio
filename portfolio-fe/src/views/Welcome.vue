@@ -5,21 +5,21 @@
         <TypewriterText :text="'Welcome back admin'" :delay="100" />
       </h1>
     </div>
-    <div class="flex items-center justify-center bg-gray-900 mt-0">
-      <div class="w-[33%] bg-gray-800 rounded-lg shadow-lg p-8">
-        <h1 class="text-xl text-gray-200 mb-4">Portfolio Stats</h1>
-        <div class="grid grid-cols-3 gap-4">
-          <div class="text-center p-4 bg-gray-700 rounded-lg">
-            <p class="text-2xl font-bold text-blue-400">{{ stats.photos_count }}</p>
-            <p class="text-gray-300">Photos</p>
+    <div class="flex items-center justify-center bg-gray-900 mt-0 px-4">
+      <div class="w-full md:w-2/3 lg:w-1/3 bg-gray-800 rounded-lg shadow-lg p-4 md:p-8">
+        <h1 class="text-lg md:text-xl text-gray-200 mb-4">Portfolio Stats</h1>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+          <div class="text-center p-3 md:p-4 bg-gray-700 rounded-lg">
+            <p class="text-xl md:text-2xl font-bold text-blue-400">{{ stats.photos_count }}</p>
+            <p class="text-sm md:text-base text-gray-300">Photos</p>
           </div>
-          <div class="text-center p-4 bg-gray-700 rounded-lg">
-            <p class="text-2xl font-bold text-green-400">{{ stats.models_count }}</p>
-            <p class="text-gray-300">Models</p>
+          <div class="text-center p-3 md:p-4 bg-gray-700 rounded-lg">
+            <p class="text-xl md:text-2xl font-bold text-green-400">{{ stats.models_count }}</p>
+            <p class="text-sm md:text-base text-gray-300">Models</p>
           </div>
-          <div class="text-center p-4 bg-gray-700 rounded-lg">
-            <p class="text-2xl font-bold text-purple-400">{{ stats.videos_count }}</p>
-            <p class="text-gray-300">Videos</p>
+          <div class="text-center p-3 md:p-4 bg-gray-700 rounded-lg">
+            <p class="text-xl md:text-2xl font-bold text-purple-400">{{ stats.videos_count }}</p>
+            <p class="text-sm md:text-base text-gray-300">Videos</p>
           </div>
         </div>
       </div>
