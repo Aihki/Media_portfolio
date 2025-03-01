@@ -13,7 +13,10 @@
     </div>
 
     <div class="bg-gray-800 shadow-lg rounded-lg p-6">
-      <h2 class="text-xl font-bold text-gray-200 mb-4">Video Gallery</h2>
+      <h2 class="text-xl font-bold text-gray-200 mb-4 text-center">Video Gallery</h2>
+      
+      <CategoryFilter @filter="filterVideos" />
+
       <div v-if="loading" class="text-center py-4">
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
@@ -24,11 +27,11 @@
       </div>
 
       <div
-        v-if="!loading && videos.length > 0"
+        v-if="!loading && filteredVideos.length > 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <div
-          v-for="video in videos"
+          v-for="video in filteredVideos"
           :key="video.id"
           class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900 relative"
         >
@@ -58,7 +61,7 @@
         </div>
       </div>
       <div
-        v-if="!loading && videos.length === 0"
+        v-if="!loading && filteredVideos.length === 0"
         class="text-gray-400 text-center py-4"
       >
         No videos found
@@ -68,16 +71,28 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
   import { getVideosWithDetails, type Video, uploadVideo as uploadVideoAPI, deleteVideo as deleteVideoAPI } from '@/api';
   import UploadForm from '@/components/UploadForm.vue';
   import { useAuthStore } from '@/utils/AuthStore';
+  import CategoryFilter from '@/components/CategoryFilter.vue';
 
   const videoFile = ref<File | null>(null);
   const videos = ref<Video[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const authStore = useAuthStore();
+
+  const selectedCategories = ref<string[] | null>(null);
+
+  const filteredVideos = computed(() => {
+    if (!selectedCategories.value || selectedCategories.value.length === 0) return videos.value;
+    return videos.value.filter(video => selectedCategories.value?.includes(video.category_id));
+  });
+
+  const filterVideos = (categories: string[] | null) => {
+    selectedCategories.value = categories;
+  };
 
   const handleVideoUpload = (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];

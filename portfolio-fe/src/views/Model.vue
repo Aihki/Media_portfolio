@@ -18,6 +18,9 @@
       <h2 class="text-xl font-bold text-gray-200 mb-4 text-center">
         Model Gallery
       </h2>
+
+      <CategoryFilter @filter="filterModels" />
+
       <div v-if="loading" class="text-center py-4">
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
@@ -29,11 +32,11 @@
       </div>
 
       <div
-        v-if="!loading && models.length > 0"
+        v-if="!loading && filteredModels.length > 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <div
-          v-for="model in models"
+          v-for="model in filteredModels"
           :key="model.id"
           class="bg-gray-700 rounded-lg p-4 shadow-md relative"
           @click="openModel(model)"
@@ -60,7 +63,7 @@
       </div>
 
       <div
-        v-if="!loading && models.length === 0"
+        v-if="!loading && filteredModels.length === 0"
         class="text-gray-400 text-center py-4"
       >
         No models found
@@ -78,7 +81,7 @@
 
 <script setup lang="ts">
   import { useAuthStore } from '@/utils/AuthStore';
-  import { onMounted, ref, onUnmounted } from 'vue';
+  import { onMounted, ref, onUnmounted, computed } from 'vue';
   import {
     Engine,
     Scene,
@@ -91,6 +94,7 @@
   import { getModelsWithDetails, uploadModel, deleteModel as deleteModelAPI, type Model } from '@/api';
   import UploadForm from '@/components/UploadForm.vue';
   import ModelView from '@/components/ModelView.vue';
+  import CategoryFilter from '@/components/CategoryFilter.vue';
 
   const authStore = useAuthStore();
   const models = ref<Model[]>([]);
@@ -99,6 +103,12 @@
   const engineMap = new Map();
   const cleanupFunctions = ref<(() => void)[]>([]);
   const modelView = ref<Model | null>(null);
+  const selectedCategories = ref<string[] | null>(null);
+
+  const filteredModels = computed(() => {
+    if (!selectedCategories.value || selectedCategories.value.length === 0) return models.value;
+    return models.value.filter(model => selectedCategories.value?.includes(model.category_id));
+  });
 
   const handleUpload = async (uploadData: {
     file: File;
@@ -260,5 +270,9 @@
     } finally {
       loading.value = false;
     }
+  };
+
+  const filterModels = (categories: string[] | null) => {
+    selectedCategories.value = categories;
   };
 </script>

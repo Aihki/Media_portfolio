@@ -19,6 +19,9 @@
       <h2 class="text-xl font-bold text-gray-200 mb-4 text-center">
         Photo Gallery
       </h2>
+      
+      <CategoryFilter @filter="filterPhotos" />
+
       <div v-if="loading" class="text-center py-4">
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"
@@ -29,11 +32,11 @@
       </div>
 
       <div
-        v-if="!loading && photos.length > 0"
+        v-if="!loading && filteredPhotos.length > 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <div
-          v-for="photo in photos"
+          v-for="photo in filteredPhotos"
           :key="photo.id"
           class="border border-gray-700 rounded-lg p-4 shadow-md bg-gray-900"
         >
@@ -70,7 +73,7 @@
         @close="photoView = null"
       />
       <div
-        v-if="!loading && photos.length === 0"
+        v-if="!loading && filteredPhotos.length === 0"
         class="text-gray-400 text-center py-4"
       >
         No photos found
@@ -80,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
   import {
     uploadPhoto as uploadPhotoAPI,
     getPhotosWithDetails,
@@ -90,12 +93,19 @@
   import PhotoView from '@/components/PhotoView.vue';
   import UploadForm from '@/components/UploadForm.vue';
   import { useAuthStore } from '@/utils/AuthStore';
+  import CategoryFilter from '@/components/CategoryFilter.vue';
 
   const photos = ref<Photo[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const photoView = ref<{ url: string; name: string } | null>(null);
   const authStore = useAuthStore();
+  const selectedCategories = ref<string[] | null>(null);
+
+  const filteredPhotos = computed(() => {
+    if (!selectedCategories.value || selectedCategories.value.length === 0) return photos.value;
+    return photos.value.filter(photo => selectedCategories.value?.includes(photo.category_id));
+  });
 
   const fetchPhotos = async () => {
     try {
@@ -162,6 +172,10 @@
     } finally {
       loading.value = false;
     }
+  };
+
+  const filterPhotos = (categories: string[] | null) => {
+    selectedCategories.value = categories;
   };
 
   onMounted(fetchPhotos);
