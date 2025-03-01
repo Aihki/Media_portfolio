@@ -1,3 +1,12 @@
+//! Data models for the portfolio application
+//! 
+//! This module contains all the data structures used in the application:
+//! - `admin`: Authentication and user management
+//! - `category`: Content categorization
+//! - `photo`: Photo storage and responses
+//! - `model`: 3D model storage and responses
+//! - `video`: Video storage and responses
+
 pub mod admin;
 pub mod category;
 pub mod photo;

@@ -1,3 +1,12 @@
+//! API route configuration
+//! 
+//! Defines all API routes and their handlers.
+//! Includes:
+//! - File upload endpoints
+//! - Content management endpoints
+//! - Authentication endpoints
+//! - Static file serving
+
 use axum::{
     Router,
     routing::{get, post, delete},
@@ -9,6 +18,15 @@ use std::sync::Arc;
 use mongodb::Database;
 use crate::handlers::auth::login_handler;
 
+/// Creates the router with all API routes
+/// 
+/// # Arguments
+/// 
+/// * `db` - MongoDB database connection wrapped in Arc
+/// 
+/// # Returns
+/// 
+/// Router instance configured with all endpoints and middleware
 pub fn create_routes(db: Arc<Database>) -> Router {
     Router::new()
         .route("/upload/photo", post(photos::upload_photo)) 

@@ -1,3 +1,11 @@
+//! Portfolio Backend API Entry Point
+//! 
+//! Main application that:
+//! - Sets up the database connection
+//! - Initializes storage directories
+//! - Configures CORS
+//! - Starts the HTTP server
+
 use std::{fs, time::Duration};
 use tower_http::cors::{CorsLayer, Any};
 use axum::http::{Method, header};
@@ -14,6 +22,13 @@ use handlers::{
     videos::VIDEO_FOLDER
 };
 
+/// Application entry point
+/// 
+/// Sets up and runs the backend API server with:
+/// - MongoDB connection
+/// - File storage directories
+/// - CORS configuration
+/// - HTTP server on 127.0.0.1:3000
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();

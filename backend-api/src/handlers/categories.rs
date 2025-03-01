@@ -1,3 +1,9 @@
+//! Category handling module
+//! 
+//! Provides functionality for:
+//! - Category creation
+//! - Category listing
+
 use axum::{extract::State, Json};
 use axum::http::StatusCode;
 use mongodb::Database;
@@ -5,6 +11,14 @@ use std::sync::Arc;
 use futures_util::TryStreamExt;
 use crate::models::Category;
 
+/// Creates a new category
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// * `category` - Category data to create
+/// 
+/// # Returns
+/// Returns the created category with its ID
 pub async fn create_category(
     State(db): State<Arc<Database>>,
     Json(category): Json<Category>,
@@ -24,6 +38,13 @@ pub async fn create_category(
     Ok(Json(created_category))
 }
 
+/// Lists all available categories
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// 
+/// # Returns
+/// Returns a list of all categories
 pub async fn list_categories(
     State(db): State<Arc<Database>>,
 ) -> Result<Json<Vec<Category>>, StatusCode> {

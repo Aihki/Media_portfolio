@@ -1,3 +1,11 @@
+//! Video handling module
+//! 
+//! Provides functionality for:
+//! - Video upload
+//! - Video retrieval
+//! - Video listing
+//! - Video deletion
+
 use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
@@ -14,8 +22,17 @@ use crate::models::{Video, VideoResponse, Category};
 use futures_util::StreamExt;
 use mongodb::bson::doc;
 
+/// Directory where videos are stored
 pub const VIDEO_FOLDER: &str = "static/videos";
 
+/// Handles video upload requests
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// * `multipart` - Multipart form data containing video file and metadata
+/// 
+/// # Returns
+/// Returns the URL and filename of the uploaded video, or an error status
 pub async fn upload_video(
     State(db): State<Arc<Database>>,
     mut multipart: Multipart
@@ -116,6 +133,10 @@ pub async fn upload_video(
     }
 }
 
+/// Lists all available videos
+/// 
+/// # Returns
+/// Returns a list of video URLs, or an error status
 pub async fn list_videos() -> Result<Json<Vec<String>>, StatusCode> {
     if !PathBuf::from(VIDEO_FOLDER).exists() {
         fs::create_dir_all(VIDEO_FOLDER)
@@ -143,6 +164,13 @@ pub async fn list_videos() -> Result<Json<Vec<String>>, StatusCode> {
     }
 }
 
+/// Retrieves detailed information about all videos
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// 
+/// # Returns
+/// Returns a list of video details with category information
 pub async fn get_videos(
     State(db): State<Arc<Database>>
 ) -> Result<Json<Vec<VideoResponse>>, StatusCode> {
@@ -193,6 +221,14 @@ pub async fn get_videos(
     Ok(Json(videos))
 }
 
+/// Deletes a specific video
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// * `id` - ID of the video to delete
+/// 
+/// # Returns
+/// Returns success status or error
 pub async fn delete_video(
     State(db): State<Arc<Database>>,
     AxumPath(id): AxumPath<String>,

@@ -1,3 +1,12 @@
+//! Photo handling module
+//! 
+//! Provides functionality for:
+//! - Photo upload
+//! - Photo retrieval
+//! - Photo listing
+//! - Photo deletion
+//! - Individual photo file serving
+
 use axum::{
     extract::{Multipart, Path as AxumPath, State},
     Json,
@@ -17,8 +26,17 @@ use futures_util::StreamExt;
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 
+/// Directory where photos are stored
 pub const PHOTO_FOLDER: &str = "static/photos";
 
+/// Handles photo upload requests
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// * `multipart` - Multipart form data containing photo file and metadata
+/// 
+/// # Returns
+/// Returns the URL and filename of the uploaded photo, or an error status
 pub async fn upload_photo(
     State(db): State<Arc<Database>>,
     mut multipart: Multipart
@@ -147,6 +165,13 @@ pub async fn upload_photo(
     }
 }
 
+/// Retrieves a specific photo file
+/// 
+/// # Arguments
+/// * `filename` - Name of the photo file to retrieve
+/// 
+/// # Returns
+/// Returns the photo file as a stream response or a 404 error
 pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
     let path = PathBuf::from(PHOTO_FOLDER).join(filename);
     
@@ -165,6 +190,10 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
     }
 }
 
+/// Lists all available photos
+/// 
+/// # Returns
+/// Returns a list of photo URLs, or an error status
 pub async fn list_photos() -> Result<Json<Vec<String>>, StatusCode> {
     println!("📸 Listing photos from: {}", PHOTO_FOLDER);
     
@@ -198,6 +227,13 @@ pub async fn list_photos() -> Result<Json<Vec<String>>, StatusCode> {
     }
 }
 
+/// Retrieves detailed information about all photos
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// 
+/// # Returns
+/// Returns a list of photo details with category information
 pub async fn get_photos(
     State(db): State<Arc<Database>>
 ) -> Result<Json<Vec<PhotoResponse>>, StatusCode> {
@@ -282,6 +318,17 @@ pub async fn get_photos(
     }
 }
 
+/// Deletes a specific photo
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// * `id` - ID of the photo to delete
+/// 
+/// # Returns
+/// * `Ok(StatusCode::NO_CONTENT)` - Photo was successfully deleted
+/// * `Err(StatusCode::NOT_FOUND)` - Photo with given ID was not found
+/// * `Err(StatusCode::BAD_REQUEST)` - Invalid ID format
+/// * `Err(StatusCode::INTERNAL_SERVER_ERROR)` - Database error
 pub async fn delete_photo(
     State(db): State<Arc<Database>>,
     AxumPath(id): AxumPath<String>,

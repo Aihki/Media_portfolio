@@ -1,3 +1,11 @@
+//! 3D model handling module
+//! 
+//! Provides functionality for:
+//! - Model upload
+//! - Model retrieval
+//! - Model listing
+//! - Model deletion
+
 use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
@@ -15,8 +23,17 @@ use futures_util::StreamExt;
 use mongodb::bson::oid::ObjectId;
 use mongodb::bson::doc;
 
+/// Directory where 3D models are stored
 pub const MODEL_FOLDER: &str = "static/models";
 
+/// Handles 3D model upload requests
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// * `multipart` - Multipart form data containing model file and metadata
+/// 
+/// # Returns
+/// Returns the URL and filename of the uploaded model
 pub async fn upload_model(
     State(db): State<Arc<Database>>,
     mut multipart: Multipart
@@ -102,6 +119,10 @@ pub async fn upload_model(
     }
 }
 
+/// Lists all available 3D models
+/// 
+/// # Returns
+/// Returns a list of model URLs
 pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
     if !PathBuf::from(MODEL_FOLDER).exists() {
         fs::create_dir_all(MODEL_FOLDER)
@@ -129,6 +150,13 @@ pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
     }
 }
 
+/// Retrieves detailed information about all models
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// 
+/// # Returns
+/// Returns a list of model details with category information
 pub async fn get_models(
     State(db): State<Arc<Database>>
 ) -> Result<Json<Vec<ModelResponse>>, StatusCode> {
@@ -174,6 +202,11 @@ pub async fn get_models(
     Ok(Json(models))
 }
 
+/// Deletes a specific model
+/// 
+/// # Arguments
+/// * `db` - MongoDB database connection
+/// * `id` - ID of the model to delete
 pub async fn delete_model(
     State(db): State<Arc<Database>>,
     AxumPath(id): AxumPath<String>

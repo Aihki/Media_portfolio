@@ -1,0 +1,19 @@
+/* Custom styles for documentation */
+:root {
+    --main-bg-color: #ffffff;
+    --main-fg-color: #000000;
+    --link-color: #0077cc;
+    --sidebar-bg: #f5f5f5;
+    --code-bg: #f8f8f8;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --main-bg-color: #1e1e1e;
+        --main-fg-color: #ffffff;
+        --link-color: #66b3ff;
+        --sidebar-bg: #252525;
+        --code-bg: #2d2d2d;
+    }
+}

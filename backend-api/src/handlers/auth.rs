@@ -1,3 +1,7 @@
+//! Authentication handler module
+//! 
+//! Provides functionality for user authentication and JWT token generation.
+
 use axum::{
     extract::State,
     Json,
@@ -11,12 +15,23 @@ use chrono::{self, Utc, Duration};
 
 use crate::models::admin::{Admin, LoginCredentials, LoginResponse};
 
+/// JWT claims structure for token generation
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     sub: String,
     exp: usize,
 }
 
+/// Handles admin user login requests
+/// 
+/// # Arguments
+/// 
+/// * `db` - MongoDB database connection
+/// * `credentials` - Login credentials containing username and password
+/// 
+/// # Returns
+/// 
+/// Returns a JWT token on successful authentication, or appropriate error status
 pub async fn login_handler(
     State(db): State<Arc<Database>>,
     Json(credentials): Json<LoginCredentials>,
