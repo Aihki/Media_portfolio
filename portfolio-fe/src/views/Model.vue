@@ -50,7 +50,8 @@
             <i class="pi pi-trash"></i>
           </button>
           <canvas
-            :ref="el => initCanvas(el, model.url)"
+            :key="model.id"
+            :ref="el => initCanvas(el, model)"
             class="w-full h-48 rounded mb-2"
           ></canvas>
           <div class="mt-2 text-gray-300">
@@ -81,7 +82,7 @@
 
 <script setup lang="ts">
   import { useAuthStore } from '@/utils/AuthStore';
-  import { onMounted, ref, onUnmounted, computed } from 'vue';
+  import { onMounted, ref, onUnmounted, computed, watch } from 'vue';
   import {
     Engine,
     Scene,
@@ -160,8 +161,16 @@
 
   onMounted(fetchModels);
 
-  function initCanvas(canvas: HTMLCanvasElement | null, modelUrl: string) {
-    if (!canvas || engineMap.has(modelUrl)) return;
+  function initCanvas(canvas: HTMLCanvasElement | null, model: Model) {
+    if (!canvas) return;
+    
+
+    if (engineMap.has(model.id)) {
+      const { engine, scene } = engineMap.get(model.id);
+      scene.dispose();
+      engine.dispose();
+      engineMap.delete(model.id);
+    }
 
     try {
       const engine = new Engine(canvas, true, {
@@ -171,7 +180,6 @@
       });
 
       const scene = new Scene(engine);
-
 
       const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
       light.intensity = 1.0;
@@ -186,7 +194,7 @@
       );
       camera.attachControl(canvas, true);
 
-      engineMap.set(modelUrl, { engine, scene });
+      engineMap.set(model.id, { engine, scene });
 
       scene.executeWhenReady(() => {
         engine.runRenderLoop(() => {
@@ -196,21 +204,20 @@
         });
       });
 
-      loadModel(modelUrl, scene);
+      loadModel(model.url, scene);
 
       const resizeHandler = () => {
         engine.resize();
       };
       window.addEventListener('resize', resizeHandler);
 
-
       cleanupFunctions.value.push(() => {
         window.removeEventListener('resize', resizeHandler);
-        if (engineMap.has(modelUrl)) {
-          const { engine, scene } = engineMap.get(modelUrl);
+        if (engineMap.has(model.id)) {
+          const { engine, scene } = engineMap.get(model.id);
           scene.dispose();
           engine.dispose();
-          engineMap.delete(modelUrl);
+          engineMap.delete(model.id);
         }
       });
     } catch (error) {
@@ -219,6 +226,22 @@
     }
   }
 
+
+  watch(filteredModels, (newModels, oldModels) => {
+    if (!oldModels) return;
+
+    const oldIds = new Set(oldModels.map(m => m.id));
+    const newIds = new Set(newModels.map(m => m.id));
+    
+    engineMap.forEach((value, key) => {
+      if (!newIds.has(key)) {
+        const { engine, scene } = value;
+        scene.dispose();
+        engine.dispose();
+        engineMap.delete(key);
+      }
+    });
+  });
 
   onUnmounted(() => {
     cleanupFunctions.value.forEach(cleanup => cleanup());

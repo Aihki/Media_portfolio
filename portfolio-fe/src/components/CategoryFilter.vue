@@ -81,14 +81,14 @@ function handleCheckboxChange(category: Category, event: Event) {
 }
 
 watch(selectedCategories, (newValue) => {
-  console.log('Selected categories:', newValue); // Debug log
+  console.log('Selected categories:', newValue);
   emit('filter', newValue.length > 0 ? newValue : null);
 });
 
 async function fetchCategories() {
   try {
     categories.value = await listCategories();
-    console.log('Fetched categories:', categories.value); // Debug log
+    console.log('Fetched categories:', categories.value);
   } catch (error) {
     console.error('Error fetching categories:', error);
   }
