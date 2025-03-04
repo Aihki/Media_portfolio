@@ -57,6 +57,12 @@
             Sandbox
           </router-link>
           <router-link
+            to="/pixel-art"
+            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
+          >
+            Pixel Art
+          </router-link>
+          <router-link
             to="/about"
             class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
           >
