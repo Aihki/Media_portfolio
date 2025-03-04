@@ -60,6 +60,13 @@
               Category: {{ model.category_name }}
             </p>
           </div>
+          <button
+            @click="openFeedback(model)"
+            class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full"
+            aria-label="Open feedback"
+          >
+            <i class="pi pi-star"></i>
+          </button>
         </div>
       </div>
 
@@ -76,6 +83,15 @@
       :model="modelView.url"
       :modelName="modelView.name"
       @close="modelView = null"
+    />
+
+    <FeedbackModal
+      v-if="feedbackModel"
+      :is-open="!!feedbackModel"
+      :content-id="feedbackModel?.id"
+      content-type="model"
+      @close="feedbackModel = null"
+      @submitted="handleFeedbackSubmitted"
     />
   </div>
 </template>
@@ -96,6 +112,7 @@
   import UploadForm from '@/components/UploadForm.vue';
   import ModelView from '@/components/ModelView.vue';
   import CategoryFilter from '@/components/CategoryFilter.vue';
+  import FeedbackModal from '@/components/FeedbackModal.vue';
 
   const authStore = useAuthStore();
   const models = ref<Model[]>([]);
@@ -105,6 +122,7 @@
   const cleanupFunctions = ref<(() => void)[]>([]);
   const modelView = ref<Model | null>(null);
   const selectedCategories = ref<string[] | null>(null);
+  const feedbackModel = ref<Model | null>(null);
 
   const filteredModels = computed(() => {
     if (!selectedCategories.value || selectedCategories.value.length === 0) return models.value;
@@ -298,4 +316,13 @@
   const filterModels = (categories: string[] | null) => {
     selectedCategories.value = categories;
   };
+
+  function openFeedback(model: Model) {
+    feedbackModel.value = model;
+  }
+
+  function handleFeedbackSubmitted() {
+    // Optional: Show success message or refresh content
+    console.log('Feedback submitted successfully');
+  }
 </script>
