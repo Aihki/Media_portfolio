@@ -48,14 +48,23 @@
               @error="handleImageError"
               @click="photoView = { url: photo.url, name: photo.name }"
             />
-            <button
-              v-if="authStore.isAuthenticated"
-              @click="deletePhoto(photo.id)"
-              class="absolute bottom-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 transition-colors"
-              aria-label="Delete photo"
-            >
-              <i class="pi pi-trash"></i>
-            </button>
+            <div class="absolute bottom-2 right-2 flex gap-2">
+              <button
+                @click.stop="openFeedback(photo)"
+                class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition-colors"
+                aria-label="Give feedback"
+              >
+                <i class="pi pi-star"></i>
+              </button>
+              <button
+                v-if="authStore.isAuthenticated"
+                @click="deletePhoto(photo.id)"
+                class="bg-red-600 hover:bg-red-700 text-white p-2 transition-colors"
+                aria-label="Delete photo"
+              >
+                <i class="pi pi-trash"></i>
+              </button>
+            </div>
           </div>
           <div class="mt-2 text-gray-300">
             <h3 class="font-semibold">{{ photo.name }}</h3>
@@ -80,6 +89,15 @@
       </div>
     </div>
   </div>
+
+  <FeedbackModal
+    v-if="feedbackItem"
+    :is-open="!!feedbackItem"
+    :content-id="feedbackItem?.id"
+    content-type="photo"
+    @close="feedbackItem = null"
+    @submitted="handleFeedbackSubmitted"
+  />
 </template>
 
 <script setup lang="ts">
@@ -94,6 +112,7 @@
   import UploadForm from '@/components/UploadForm.vue';
   import { useAuthStore } from '@/utils/AuthStore';
   import CategoryFilter from '@/components/CategoryFilter.vue';
+  import FeedbackModal from '@/components/FeedbackModal.vue';
 
   const photos = ref<Photo[]>([]);
   const loading = ref(false);
@@ -101,6 +120,7 @@
   const photoView = ref<{ url: string; name: string } | null>(null);
   const authStore = useAuthStore();
   const selectedCategories = ref<string[] | null>(null);
+  const feedbackItem = ref<Photo | null>(null);
 
   const filteredPhotos = computed(() => {
     if (!selectedCategories.value || selectedCategories.value.length === 0) return photos.value;
@@ -177,6 +197,14 @@
   const filterPhotos = (categories: string[] | null) => {
     selectedCategories.value = categories;
   };
+
+  function openFeedback(photo: Photo) {
+    feedbackItem.value = photo;
+  }
+
+  function handleFeedbackSubmitted() {
+    console.log('Feedback submitted successfully');
+  }
 
   onMounted(fetchPhotos);
 </script>

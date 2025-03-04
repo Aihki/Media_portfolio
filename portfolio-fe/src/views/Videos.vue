@@ -35,14 +35,23 @@
           :key="video.id"
           class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900 relative"
         >
-          <button
-            v-if="authStore.isAuthenticated"
-            @click="deleteVideo(video.id)"
-            class="absolute bottom-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 transition-colors z-10"
-            aria-label="Delete video"
-          >
-            <i class="pi pi-trash"></i>
-          </button>
+          <div class="absolute bottom-2 right-2 flex gap-2 z-10">
+            <button
+              @click.stop="openFeedback(video)"
+              class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition-colors"
+              aria-label="Give feedback"
+            >
+              <i class="pi pi-star"></i>
+            </button>
+            <button
+              v-if="authStore.isAuthenticated"
+              @click="deleteVideo(video.id)"
+              class="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition-colors"
+              aria-label="Delete video"
+            >
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
           <video
             controls
             class="w-full aspect-video"
@@ -68,6 +77,15 @@
       </div>
     </div>
   </div>
+
+  <FeedbackModal
+    v-if="feedbackItem"
+    :is-open="!!feedbackItem"
+    :content-id="feedbackItem?.id"
+    content-type="video"
+    @close="feedbackItem = null"
+    @submitted="handleFeedbackSubmitted"
+  />
 </template>
 
 <script setup lang="ts">
@@ -76,6 +94,7 @@
   import UploadForm from '@/components/UploadForm.vue';
   import { useAuthStore } from '@/utils/AuthStore';
   import CategoryFilter from '@/components/CategoryFilter.vue';
+  import FeedbackModal from '@/components/FeedbackModal.vue';
 
   const videoFile = ref<File | null>(null);
   const videos = ref<Video[]>([]);
@@ -183,6 +202,16 @@
       loading.value = false;
     }
   };
+
+  const feedbackItem = ref<Video | null>(null);
+
+  function openFeedback(video: Video) {
+    feedbackItem.value = video;
+  }
+
+  function handleFeedbackSubmitted() {
+    console.log('Feedback submitted successfully');
+  }
 
   onMounted(fetchVideos);
 </script>

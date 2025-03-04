@@ -73,8 +73,7 @@ async function submitFeedback() {
     
     emit('submitted');
     emit('close');
-    
-    // Reset form
+
     rating.value = 0;
     comment.value = '';
   } catch (error) {

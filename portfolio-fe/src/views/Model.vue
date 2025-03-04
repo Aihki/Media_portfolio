@@ -41,14 +41,6 @@
           class="bg-gray-700 rounded-lg p-4 shadow-md relative"
           @click="openModel(model)"
         >
-          <button
-            v-if="authStore.isAuthenticated"
-            @click.stop="deleteModel(model.id)"
-            class="absolute bottom-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 transition-colors z-10"
-            aria-label="Delete model"
-          >
-            <i class="pi pi-trash"></i>
-          </button>
           <canvas
             :key="model.id"
             :ref="el => initCanvas(el, model)"
@@ -60,13 +52,23 @@
               Category: {{ model.category_name }}
             </p>
           </div>
-          <button
-            @click="openFeedback(model)"
-            class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full"
-            aria-label="Open feedback"
-          >
-            <i class="pi pi-star"></i>
-          </button>
+          <div class="absolute bottom-2 right-2 flex gap-2 z-10">
+            <button
+              @click.stop="openFeedback(model)"
+              class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition-colors"
+              aria-label="Give feedback"
+            >
+              <i class="pi pi-star"></i>
+            </button>
+            <button
+              v-if="authStore.isAuthenticated"
+              @click.stop="deleteModel(model.id)"
+              class="bg-red-600 hover:bg-red-700 text-white p-2 rounded transition-colors"
+              aria-label="Delete model"
+            >
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -322,7 +324,6 @@
   }
 
   function handleFeedbackSubmitted() {
-    // Optional: Show success message or refresh content
     console.log('Feedback submitted successfully');
   }
 </script>
