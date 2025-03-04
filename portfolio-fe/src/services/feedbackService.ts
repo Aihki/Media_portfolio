@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
 export interface Feedback {
@@ -40,6 +40,27 @@ export async function getFeedbackForContent(contentId: string, contentType: stri
     }));
   } catch (error) {
     console.error('Error getting feedback:', error);
+    throw error;
+  }
+}
+
+export async function getRecentFeedback(count = 5) {
+  try {
+    const feedbackRef = collection(db, 'feedback');
+    const q = query(
+      feedbackRef,
+      orderBy('createdAt', 'desc'),
+      limit(count)
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate()
+    }));
+  } catch (error) {
+    console.error('Error getting recent feedback:', error);
     throw error;
   }
 }
