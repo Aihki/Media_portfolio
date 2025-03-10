@@ -12,6 +12,8 @@
   "dependencies": {
     "@babylonjs/core": "^7.48.3",
     "@babylonjs/loaders": "^7.48.3",
+    "@mediapipe/hands": "^0.4.1675469240",
+    "@tensorflow-models/hand-pose-detection": "^2.0.1",
     "@tensorflow-models/mobilenet": "^2.1.1",
     "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.7.9",
@@ -24,6 +26,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@firebase/firestore-types": "^3.0.3",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/runtime-core": "^3.5.13",
     "@vue/tsconfig": "^0.7.0",

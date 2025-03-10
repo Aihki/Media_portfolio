@@ -42,10 +42,13 @@
 
       <router-view></router-view>
     </div>
+    <HandGestureNavigation />
   </div>
 </template>
 
 <script setup lang="ts">
+import HandGestureNavigation from './components/HandGestureNavigation.vue';
+
 const navigationLinks = [
   { path: '/', name: 'Photos' },
   { path: '/models', name: '3D Models' },

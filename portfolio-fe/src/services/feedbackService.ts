@@ -1,4 +1,16 @@
-import { collection, addDoc, getDocs, query, where, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  where, 
+  serverTimestamp, 
+  orderBy, 
+  limit,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+  type DocumentReference,
+} from 'firebase/firestore';
 import { db } from '../utils/firebase';
 
 export interface Feedback {
@@ -9,10 +21,14 @@ export interface Feedback {
   createdAt: Date;
 }
 
+export interface FeedbackDocument extends Feedback {
+  id: string;
+}
+
 export async function addFeedback(feedback: Omit<Feedback, 'createdAt'>) {
   try {
     const feedbackRef = collection(db, 'feedback');
-    const docRef = await addDoc(feedbackRef, {
+    const docRef: DocumentReference = await addDoc(feedbackRef, {
       ...feedback,
       createdAt: serverTimestamp()
     });
@@ -34,10 +50,10 @@ export async function getFeedbackForContent(contentId: string, contentType: stri
     );
     
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
       id: doc.id,
       ...doc.data()
-    }));
+    } as FeedbackDocument));
   } catch (error) {
     console.error('Error getting feedback:', error);
     throw error;
@@ -54,7 +70,7 @@ export async function getRecentFeedback(count = 5) {
     );
     
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate()
