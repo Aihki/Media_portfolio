@@ -59,6 +59,25 @@
           :accept="acceptTypes"
           class="w-full text-gray-300 file:bg-gray-700 file:border-0 file:text-gray-300 file:px-4 file:py-2 file:rounded-md file:hover:bg-gray-600"
         />
+        <div v-if="classificationLoading" class="mt-2 text-gray-300">
+          Analyzing image...
+        </div>
+        <div v-if="suggestions.length > 0 && !selectedCategory" class="mt-2">
+          <div class="flex justify-between items-center mb-2">
+            <p class="text-gray-300">Suggested categories:</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="prediction in predictions"
+              :key="prediction.className"
+              @click="handleSuggestionClick(prediction.className)"
+              class="px-3 py-1 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 text-sm flex items-center gap-2"
+            >
+              <span>{{ prediction.className }}</span>
+              <span class="text-xs text-gray-400">({{ Math.round(prediction.probability * 100) }}%)</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <button
@@ -76,9 +95,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '../utils/AuthStore';
 import { listCategories, createCategory } from '../api';
+import { classifyImage } from '../utils/imageClassifier';
 
 const authStore = useAuthStore();
 
@@ -99,6 +119,16 @@ const categories = ref<Array<{ _id: string; name: string }>>([]);
 const selectedCategory = ref('');
 const showNewCategory = ref(false);
 const newCategoryName = ref('');
+
+const classificationLoading = ref(false);
+const suggestions = ref<string[]>([]);
+
+interface Prediction {
+  className: string;
+  probability: number;
+}
+
+const predictions = ref<Prediction[]>([]);
 
 onMounted(async () => {
   await fetchCategories();
@@ -127,7 +157,30 @@ async function createNewCategory() {
   }
 }
 
-const handleFileUpload = (event: Event) => {
+const classifyCurrentFile = async () => {
+  if (!file.value || props.type !== 'Photo') return;
+
+  try {
+    classificationLoading.value = true;
+    const results = await classifyImage(file.value);
+    predictions.value = results;
+    suggestions.value = results.map(p => p.className.toLowerCase());
+
+    const matchingCategory = categories.value.find(cat => 
+      suggestions.value.some(pred => cat.name.toLowerCase().includes(pred))
+    );
+
+    if (matchingCategory) {
+      selectedCategory.value = matchingCategory._id;
+    }
+  } catch (err) {
+    console.error('Classification error:', err);
+  } finally {
+    classificationLoading.value = false;
+  }
+};
+
+const handleFileUpload = async (event: Event) => {
   const selectedFile = (event.target as HTMLInputElement).files?.[0];
   if (!selectedFile) return;
 
@@ -138,7 +191,34 @@ const handleFileUpload = (event: Event) => {
 
   file.value = selectedFile;
   error.value = null;
+
+  if (props.type === 'Photo') {
+    await classifyCurrentFile();
+  }
 };
+
+const handleSuggestionClick = (suggestion: string) => {
+  const matchingCategory = categories.value.find(cat => 
+    cat.name.toLowerCase().includes(suggestion.toLowerCase())
+  );
+
+  if (matchingCategory) {
+    selectedCategory.value = matchingCategory._id;
+
+    suggestions.value = [];
+    predictions.value = [];
+  } else {
+    newCategoryName.value = suggestion.charAt(0).toUpperCase() + suggestion.slice(1);
+    showNewCategory.value = true;
+  }
+};
+
+watch(selectedCategory, (newValue) => {
+  if (newValue) {
+    suggestions.value = [];
+    predictions.value = [];
+  }
+});
 
 const handleUpload = async () => {
   error.value = null;

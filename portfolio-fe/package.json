@@ -12,6 +12,8 @@
   "dependencies": {
     "@babylonjs/core": "^7.48.3",
     "@babylonjs/loaders": "^7.48.3",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.7.9",
     "fabric": "^6.6.1",
     "firebase": "^11.4.0",
