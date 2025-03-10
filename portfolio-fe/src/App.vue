@@ -26,47 +26,16 @@
         </p>
       </header>
 
-      <nav
-        class="sticky top-0 bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-lg mb-8 max-w-2xl mx-auto"
-      >
-        <div
-          class="overflow-x-auto flex space-x-6 py-2 px-4 scrollbar-hide justify-center"
-        >
+      <nav class="sticky top-0 bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-lg mb-8 max-w-2xl mx-auto">
+        <div class="overflow-x-auto flex space-x-6 py-2 px-4 scrollbar-hide whitespace-nowrap">
           <router-link
-            to="/"
-            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
+            v-for="link in navigationLinks"
+            :key="link.path"
+            :to="link.path"
+            class="text-sm text-gray-300 hover:text-white transition-colors duration-200 flex-shrink-0 px-3 py-1.5"
+            :class="{ 'text-white font-medium': $route.path === link.path }"
           >
-            Photos
-          </router-link>
-          <router-link
-            to="/models"
-            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
-          >
-            3D Models
-          </router-link>
-          <router-link
-            to="/videos"
-            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
-          >
-            Videos
-          </router-link>
-          <router-link
-            to="/sandbox"
-            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
-          >
-            Sandbox
-          </router-link>
-          <router-link
-            to="/pixel-art"
-            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
-          >
-            Pixel Art
-          </router-link>
-          <router-link
-            to="/about"
-            class="text-sm text-gray-300 hover:text-white whitespace-nowrap transition-colors duration-200 flex-shrink-0"
-          >
-            About Me
+            {{ link.name }}
           </router-link>
         </div>
       </nav>
@@ -76,14 +45,25 @@
   </div>
 </template>
 
+<script setup lang="ts">
+const navigationLinks = [
+  { path: '/', name: 'Photos' },
+  { path: '/models', name: '3D Models' },
+  { path: '/videos', name: 'Videos' },
+  { path: '/sandbox', name: 'Sandbox' },
+  { path: '/pixel-art', name: 'Pixel Art' },
+  { path: '/about', name: 'About Me' }
+];
+</script>
+
 <style>
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
   .background {
     position: fixed;
@@ -114,6 +94,18 @@
     }
     to {
       transform: rotate(360deg) translate(30px) rotate(-360deg);
+    }
+  }
+
+  @media (max-width: 640px) {
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    
+    nav .router-link-active {
+      background-color: rgb(55 65 81 / var(--tw-bg-opacity));
     }
   }
 </style>
