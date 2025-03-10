@@ -11,8 +11,19 @@
       </div>
 
       <div class="mt-4 flex flex-wrap items-center justify-center gap-4">
+        <div class="flex items-center gap-2">
+          <label class="text-white">Color:</label>
+          <input 
+            type="color" 
+            v-model="currentColor"
+            class="w-8 h-8 rounded cursor-pointer"
+          />
+        </div>
         <button @click="clearCanvas" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white">
           Clear Canvas
+        </button>
+        <button @click="downloadCanvas" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white">
+          Download PNG
         </button>
       </div>
     </div>
@@ -22,13 +33,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 
-const CANVAS_SIZE = 800;  
-const GRID_SIZE = 32;     
+const CANVAS_SIZE = 500;  
+const GRID_SIZE = 50;    
 const CELL_SIZE = CANVAS_SIZE / GRID_SIZE; 
 
 const canvas = ref(null);
 const fabricCanvas = ref(null);
 const squares = ref([]);
+const currentColor = ref('#000000');
 
 const initCanvas = async () => {
   if (!window.fabric) {
@@ -91,14 +103,13 @@ const initCanvas = async () => {
       });
 
       square.on('mousedown', () => {
-        square.set('fill', square.fill === 'white' ? 'black' : 'white');
+        square.set('fill', square.fill === 'white' ? currentColor.value : 'white');
         fabricCanvas.value.renderAll();
       });
 
-
       square.on('mouseover', (e) => {
         if (e.buttons === 1) { 
-          square.set('fill', square.fill === 'white' ? 'black' : 'white');
+          square.set('fill', square.fill === 'white' ? currentColor.value : 'white');
           fabricCanvas.value.renderAll();
         }
       });
@@ -116,6 +127,30 @@ const clearCanvas = () => {
   fabricCanvas.value?.renderAll();
 };
 
+const downloadCanvas = () => {
+  if (!fabricCanvas.value) return;
+  
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = CANVAS_SIZE;
+  tempCanvas.height = CANVAS_SIZE;
+  const ctx = tempCanvas.getContext('2d')!;
+  
+
+  squares.value.forEach(square => {
+    if (square.fill !== 'white') {
+      ctx.fillStyle = square.fill;
+      ctx.fillRect(square.left!, square.top!, square.width!, square.height!);
+    }
+  });
+  
+
+  const link = document.createElement('a');
+  link.download = 'pixel-art.png';
+  link.href = tempCanvas.toDataURL('image/png');
+  link.click();
+};
+
 onMounted(() => {
   initCanvas();
   window.addEventListener('resize', initCanvas);
@@ -129,18 +164,33 @@ onUnmounted(() => {
 
 <style scoped>
 .canvas-container {
-  width: 800px ;
-  height: 800px;
+  width: 500px;  
+  height: 500px; 
   margin: 0 auto;
 }
 
 canvas {
-  width: 800px;
-  height: 800pxF;
+  width: 500px;   
+  height: 500px;  
 }
 
 #grid-canvas {
   touch-action: none;
   image-rendering: pixelated;
+}
+
+input[type="color"] {
+  -webkit-appearance: none;
+  border: none;
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
 }
 </style>
