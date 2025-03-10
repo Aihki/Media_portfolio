@@ -15,7 +15,7 @@ import { db } from '../utils/firebase';
 
 export interface Feedback {
   contentId: string;
-  contentType: 'model' | 'photo' | 'video';
+  contentType: 'video' | 'photo' | 'model';
   rating: number;
   comment: string;
   createdAt: Date;
@@ -23,6 +23,15 @@ export interface Feedback {
 
 export interface FeedbackDocument extends Feedback {
   id: string;
+}
+
+interface RawFeedback {
+  id: string;
+  contentId: string;
+  contentType: 'video' | 'photo' | 'model';
+  rating: number;
+  comment: string;
+  createdAt: Date;
 }
 
 export async function addFeedback(feedback: Omit<Feedback, 'createdAt'>) {
@@ -60,7 +69,7 @@ export async function getFeedbackForContent(contentId: string, contentType: stri
   }
 }
 
-export async function getRecentFeedback(count = 5) {
+export async function getRecentFeedback(count = 5): Promise<RawFeedback[]> {
   try {
     const feedbackRef = collection(db, 'feedback');
     const q = query(
@@ -72,7 +81,10 @@ export async function getRecentFeedback(count = 5) {
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
       id: doc.id,
-      ...doc.data(),
+      contentId: doc.data().contentId,
+      contentType: doc.data().contentType,
+      rating: doc.data().rating,
+      comment: doc.data().comment,
       createdAt: doc.data().createdAt?.toDate()
     }));
   } catch (error) {

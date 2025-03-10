@@ -43,12 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
-import { listCategories } from '@/api';
-
-interface Category {
-  _id: { $oid: string };
-  name: string;
-}
+import { listCategories, type Category } from '../api';
 
 const showMenu = ref(false);
 const categories = ref<Category[]>([]);

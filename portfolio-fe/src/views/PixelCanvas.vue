@@ -34,7 +34,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import type { Canvas, Rect, Line, IEvent } from 'fabric/fabric-impl';
+
+declare const fabric: {
+  Canvas: new (elementId: string, options?: any) => Canvas;
+  Line: new (points: number[], options?: any) => Line;
+  Rect: new (options?: any) => Rect;
+};
+
+type FabricSquare = Rect & {
+  fill: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
 
 const MOBILE_BREAKPOINT = 768;
 const getCanvasSize = () => {
@@ -55,8 +70,8 @@ const CELL_SIZE = computed(() =>
 );
 
 const canvas = ref(null);
-const fabricCanvas = ref(null);
-const squares = ref([]);
+const fabricCanvas = ref<Canvas | null>(null);
+const squares = ref<FabricSquare[]>([]);
 const currentColor = ref('#000000');
 
 const initCanvas = async () => {
@@ -118,19 +133,21 @@ const initCanvas = async () => {
       });
 
       square.on('mousedown', () => {
+        if (!fabricCanvas.value) return;
         square.set('fill', square.fill === 'white' ? currentColor.value : 'white');
         fabricCanvas.value.renderAll();
       });
 
       square.on('mouseover', (e) => {
-        if (e.buttons === 1) { 
+        if (!fabricCanvas.value) return;
+        if (e.button === 1 || (e as any).buttons === 1) { 
           square.set('fill', square.fill === 'white' ? currentColor.value : 'white');
           fabricCanvas.value.renderAll();
         }
       });
 
       fabricCanvas.value.add(square);
-      squares.value.push(square);
+      squares.value.push(square as unknown as FabricSquare);
     }
   }
 
@@ -138,26 +155,36 @@ const initCanvas = async () => {
   fabricCanvas.value.on('touch:move', handleTouchMove);
 };
 
-const handleTouchStart = (e: any) => {
-  const touch = e.e.touches[0];
-  const target = fabricCanvas.value.findTarget(touch);
-  if (target) {
-    target.set('fill', target.fill === 'white' ? currentColor.value : 'white');
+const handleTouchInteraction = (e: IEvent<Event>) => {
+  if (!fabricCanvas.value) return;
+  const event = e.e as TouchEvent;
+  if (!event.touches.length) return;
+
+  const touch = event.touches[0];
+  const rect = fabricCanvas.value.getElement().getBoundingClientRect();
+  const canvasPointer = {
+    x: ((touch.clientX - rect.left) * fabricCanvas.value.getWidth()) / rect.width,
+    y: ((touch.clientY - rect.top) * fabricCanvas.value.getHeight()) / rect.height
+  };
+
+  const square = squares.value.find(s => 
+    canvasPointer.x >= s.left && 
+    canvasPointer.x <= s.left + s.width &&
+    canvasPointer.y >= s.top && 
+    canvasPointer.y <= s.top + s.height
+  );
+
+  if (square) {
+    square.set('fill', currentColor.value);
     fabricCanvas.value.renderAll();
   }
 };
 
-const handleTouchMove = (e: any) => {
-  const touch = e.e.touches[0];
-  const target = fabricCanvas.value.findTarget(touch);
-  if (target) {
-    target.set('fill', target.fill === 'white' ? currentColor.value : 'white');
-    fabricCanvas.value.renderAll();
-  }
-};
+const handleTouchStart = handleTouchInteraction;
+const handleTouchMove = handleTouchInteraction;
 
 const clearCanvas = () => {
-  squares.value.forEach(square => {
+  squares.value.forEach((square: FabricSquare) => {
     square.set('fill', 'white');
   });
   fabricCanvas.value?.renderAll();
@@ -173,10 +200,10 @@ const downloadCanvas = () => {
   const ctx = tempCanvas.getContext('2d')!;
   
 
-  squares.value.forEach(square => {
+  squares.value.forEach((square: FabricSquare) => {
     if (square.fill !== 'white') {
-      ctx.fillStyle = square.fill;
-      ctx.fillRect(square.left!, square.top!, square.width!, square.height!);
+      ctx.fillStyle = square.fill as string;
+      ctx.fillRect(square.left, square.top, square.width, square.height);
     }
   });
   
@@ -197,7 +224,7 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
 });
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
   fabricCanvas.value?.dispose();
   window.removeEventListener('resize', handleResize);
 });

@@ -90,13 +90,18 @@
 
 <script setup lang="ts">
   import { ref, onMounted, computed } from 'vue';
-  import { getVideosWithDetails, type Video, uploadVideo as uploadVideoAPI, deleteVideo as deleteVideoAPI } from '@/api';
-  import UploadForm from '@/components/UploadForm.vue';
-  import { useAuthStore } from '@/utils/AuthStore';
-  import CategoryFilter from '@/components/CategoryFilter.vue';
-  import FeedbackModal from '@/components/FeedbackModal.vue';
+  import { getVideosWithDetails, type Video, uploadVideo as uploadVideoAPI, deleteVideo as deleteVideoAPI } from '../api';
+  import UploadForm from '../components/UploadForm.vue';
+  import { useAuthStore } from '../utils/AuthStore';
+  import CategoryFilter from '../components/CategoryFilter.vue';
+  import FeedbackModal from '../components/FeedbackModal.vue';
 
-  const videoFile = ref<File | null>(null);
+  interface UploadData {
+    file: File;
+    name: string;
+    categoryId: { $oid: string } | string;
+  }
+
   const videos = ref<Video[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -111,24 +116,6 @@
 
   const filterVideos = (categories: string[] | null) => {
     selectedCategories.value = categories;
-  };
-
-  const handleVideoUpload = (event: Event) => {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('video/')) {
-      error.value = 'Please select a valid video file';
-      return;
-    }
-
-    if (file.size > 100 * 1024 * 1024) {
-      error.value = 'Video file is too large. Maximum size is 100MB';
-      return;
-    }
-
-    videoFile.value = file;
-    error.value = null;
   };
 
   const fetchVideos = async () => {
@@ -162,7 +149,7 @@
     videoElement.load();
   };
 
-  const uploadVideo = async (uploadData: { file: File; name: string; categoryId: string }) => {
+  const uploadVideo = async (uploadData: UploadData) => {
     try {
       loading.value = true;
       error.value = null;
@@ -176,7 +163,9 @@
       await uploadVideoAPI({
         file: uploadData.file,
         name: uploadData.name,
-        categoryId: typeof uploadData.categoryId === 'object' ? uploadData.categoryId.$oid : uploadData.categoryId
+        categoryId: typeof uploadData.categoryId === 'object' && '$oid' in uploadData.categoryId 
+          ? uploadData.categoryId.$oid 
+          : uploadData.categoryId
       });
 
       await fetchVideos();

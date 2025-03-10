@@ -107,12 +107,12 @@
     getPhotosWithDetails,
     deletePhoto as deletePhotoAPI,
     type Photo,
-  } from '@/api';
-  import PhotoView from '@/components/PhotoView.vue';
-  import UploadForm from '@/components/UploadForm.vue';
-  import { useAuthStore } from '@/utils/AuthStore';
-  import CategoryFilter from '@/components/CategoryFilter.vue';
-  import FeedbackModal from '@/components/FeedbackModal.vue';
+  } from '../api';
+  import PhotoView from '../components/PhotoView.vue';  // Fix import path
+  import UploadForm from '../components/UploadForm.vue';
+  import { useAuthStore } from '../utils/AuthStore';  // Fix import path
+  import CategoryFilter from '../components/CategoryFilter.vue';
+  import FeedbackModal from '../components/FeedbackModal.vue';
 
   const photos = ref<Photo[]>([]);
   const loading = ref(false);
@@ -166,10 +166,13 @@
 
       await uploadPhotoAPI(data);
       await fetchPhotos();
-    } catch (error) {
-      console.error('Upload error:', error);
-      error.value =
-        error instanceof Error ? error.message : 'Failed to upload photo';
+    } catch (err) {
+      console.error('Upload error:', err);
+      if (err instanceof Error) {
+        error.value = err.message;
+      } else {
+        error.value = 'Failed to upload photo';
+      }
     }
   };
 

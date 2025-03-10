@@ -43,7 +43,7 @@
         >
           <canvas
             :key="model.id"
-            :ref="el => initCanvas(el, model)"
+            :ref="(el) => handleCanvasRef(el as HTMLCanvasElement | null, model)"
             class="w-full h-48 rounded mb-2"
           ></canvas>
           <div class="mt-2 text-gray-300">
@@ -99,22 +99,15 @@
 </template>
 
 <script setup lang="ts">
-  import { useAuthStore } from '@/utils/AuthStore';
-  import { onMounted, ref, onUnmounted, computed, watch } from 'vue';
-  import {
-    Engine,
-    Scene,
-    ArcRotateCamera,
-    Vector3,
-    SceneLoader,
-    HemisphericLight,
-  } from '@babylonjs/core';
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+  import { useAuthStore } from '../utils/AuthStore';
+  import { getModelsWithDetails, uploadModel, deleteModel as deleteModelAPI, type Model } from '../api';
+  import { Engine, Scene, ArcRotateCamera, Vector3, SceneLoader, HemisphericLight } from '@babylonjs/core';
   import '@babylonjs/loaders';
-  import { getModelsWithDetails, uploadModel, deleteModel as deleteModelAPI, type Model } from '@/api';
-  import UploadForm from '@/components/UploadForm.vue';
-  import ModelView from '@/components/ModelView.vue';
-  import CategoryFilter from '@/components/CategoryFilter.vue';
-  import FeedbackModal from '@/components/FeedbackModal.vue';
+  import UploadForm from '../components/UploadForm.vue';
+  import ModelView from '../components/ModelView.vue';
+  import CategoryFilter from '../components/CategoryFilter.vue';
+  import FeedbackModal from '../components/FeedbackModal.vue';
 
   const authStore = useAuthStore();
   const models = ref<Model[]>([]);
@@ -128,13 +121,13 @@
 
   const filteredModels = computed(() => {
     if (!selectedCategories.value || selectedCategories.value.length === 0) return models.value;
-    return models.value.filter(model => selectedCategories.value?.includes(model.category_id));
+    return models.value.filter((model: Model) => selectedCategories.value?.includes(model.category_id));
   });
 
-  const handleUpload = async (uploadData: {
-    file: File;
-    name: string;
-    categoryId: string;
+  const handleUpload = async (uploadData: { 
+    file: File; 
+    name: string; 
+    categoryId: { $oid: string } | string;
   }) => {
     try {
       loading.value = true;
@@ -149,17 +142,19 @@
       const data = {
         file: uploadData.file,
         name: uploadData.name,
-        categoryId:
-          typeof uploadData.categoryId === 'object'
-            ? uploadData.categoryId.$oid
-            : uploadData.categoryId,
+        categoryId: typeof uploadData.categoryId === 'object' && '$oid' in uploadData.categoryId
+          ? uploadData.categoryId.$oid
+          : uploadData.categoryId,
       };
 
       await uploadModel(data);
       await fetchModels();
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : 'Failed to upload model';
+      if (err instanceof Error) {
+        error.value = err.message;
+      } else {
+        error.value = 'Failed to upload model';
+      }
       console.error('Upload error:', err);
     } finally {
       loading.value = false;
@@ -181,9 +176,14 @@
 
   onMounted(fetchModels);
 
-  function initCanvas(canvas: HTMLCanvasElement | null, model: Model) {
+  const handleCanvasRef = (el: HTMLCanvasElement | null, model: Model) => {
+    if (el instanceof HTMLCanvasElement) {
+      initCanvas(el, model);
+    }
+  };
+
+  function initCanvas(canvas: HTMLCanvasElement, model: Model) {
     if (!canvas) return;
-    
 
     if (engineMap.has(model.id)) {
       const { engine, scene } = engineMap.get(model.id);
@@ -240,18 +240,18 @@
           engineMap.delete(model.id);
         }
       });
-    } catch (error) {
-      console.error('Error initializing canvas:', error);
-      error.value = 'Failed to initialize 3D viewer';
+    } catch (err) {
+      console.error('Error initializing canvas:', err);
+      if (error.value !== null) {
+        error.value = 'Failed to initialize 3D viewer';
+      }
     }
   }
-
 
   watch(filteredModels, (newModels, oldModels) => {
     if (!oldModels) return;
 
-    const oldIds = new Set(oldModels.map(m => m.id));
-    const newIds = new Set(newModels.map(m => m.id));
+    const newIds = new Set(newModels.map((m: Model) => m.id));
     
     engineMap.forEach((value, key) => {
       if (!newIds.has(key)) {
@@ -281,11 +281,15 @@
         })
         .catch(error => {
           console.error('Error loading model:', error);
-          error.value = `Failed to load model: ${url.split('/').pop()}`;
+          if (error.value !== null) {
+            error.value = `Failed to load model: ${url.split('/').pop()}`;
+          }
         });
-    } catch (error) {
-      console.error('Error in loadModel:', error);
-      error.value = `Error loading model: ${url.split('/').pop()}`;
+    } catch (err) {
+      console.error('Error in loadModel:', err);
+      if (error.value !== null) {
+        error.value = `Error loading model: ${url.split('/').pop()}`;
+      }
     }
   }
 

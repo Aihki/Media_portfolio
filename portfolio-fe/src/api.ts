@@ -6,10 +6,10 @@ export function getFileUrl(filename: string) {
   return `${API_URL}/static/${filename}`;
 }
 
-type Category = {
-  $oid: string;
+export interface Category {
+  _id: { $oid: string };
   name: string;
-};
+}
 
 export async function listCategories(): Promise<Category[]> {
   const response = await axios.get(`${API_URL}/api/categories`);

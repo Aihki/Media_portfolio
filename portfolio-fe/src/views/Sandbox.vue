@@ -69,7 +69,7 @@
   import { ref, onMounted, onUnmounted, computed } from 'vue';
   import * as BABYLON from '@babylonjs/core';
   import '@babylonjs/loaders';
-  import { getModelsWithDetails, type Model } from '@/api';
+  import { getModelsWithDetails, type Model } from '../api';  // Fix import path
 
   const canvas = ref<HTMLCanvasElement | null>(null);
   const engine = ref<BABYLON.Engine | null>(null);
@@ -86,8 +86,7 @@
 
   const isLoading = ref(false);
   const isRotating = ref(false);
-  let rotationAnimation: number | null = null;
-
+  let rotationAnimation: BABYLON.Observer<BABYLON.Scene> | null = null;  // Fix type
 
   const startRotation = () => {
     if (!currentMesh || !scene.value) return;
@@ -116,7 +115,8 @@
   };
 
   const loadModel = async (model: Model) => {
-    if (!scene.value) return;
+    const currentScene = scene.value as BABYLON.Scene;
+    if (!currentScene) return;
 
     isLoading.value = true;
     stopRotation();
@@ -130,7 +130,7 @@
         '',
         'http://localhost:3000/static/models/',
         model.filename,
-        scene.value
+        currentScene
       );
 
       if (result.meshes.length > 0) {
@@ -166,18 +166,21 @@
   const createScene = (): void => {
     if (!canvas.value || !engine.value) return;
 
-    scene.value = new BABYLON.Scene(engine.value);
+    // Assert the engine type to fix compatibility issues
+    const babylonEngine = engine.value as unknown as BABYLON.Engine;
+    const newScene = new BABYLON.Scene(babylonEngine);
+    scene.value = newScene;
 
     camera.value = new BABYLON.UniversalCamera(
       'FPCamera',
       new BABYLON.Vector3(0, 2, -5),
-      scene.value
+      newScene
     );
 
     const light = new BABYLON.HemisphericLight(
       'light',
       new BABYLON.Vector3(0, 1, 0),
-      scene.value
+      newScene
     );
     light.intensity = 1.0;
 
@@ -198,7 +201,9 @@
       models.value = await getModelsWithDetails();
 
       if (canvas.value) {
-        engine.value = new BABYLON.Engine(canvas.value, true);
+        // Create and assert the engine type
+        const babylonEngine = new BABYLON.Engine(canvas.value, true);
+        engine.value = babylonEngine as unknown as typeof engine.value;
         createScene();
 
         if (models.value.length > 0) {
@@ -210,8 +215,10 @@
           engine.value?.resize();
         });
 
-        engine.value.runRenderLoop(() => {
-          scene.value?.render();
+        babylonEngine.runRenderLoop(() => {
+          if (scene.value) {
+            (scene.value as BABYLON.Scene).render();
+          }
         });
       }
     } catch (error) {

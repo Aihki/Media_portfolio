@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import TypewriterText from './TypewriterText.vue';
+import TypewriterText from './TypeWriterText.vue';
 
 defineProps<{
   name: string;

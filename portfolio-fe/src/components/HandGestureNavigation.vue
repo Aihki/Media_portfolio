@@ -36,10 +36,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import * as handPoseDetection from '@tensorflow-models/hand-pose-detection';
-import '@mediapipe/hands'; // Add this import
+import '@mediapipe/hands';
 
 const videoRef = ref<HTMLVideoElement | null>(null);
 const router = useRouter();
@@ -49,12 +49,10 @@ let detector: handPoseDetection.HandDetector | null = null;
 let animationFrameId: number | null = null;
 
 const isActive = ref(false);
-const sensitivity = ref(0.5);
-
-const LOADING_TIMEOUT = 10000; // 10 seconds timeout
-let loadingTimeout: NodeJS.Timeout | null = null;
-
-const DEBUG = true; // Enable debug logging
+const lastNavigationTime = ref(Date.now());
+const NAVIGATION_COOLDOWN = 1500;
+const currentGesture = ref('No gesture detected');
+const gestureConfidence = ref(0);
 
 const detectHands = async () => {
   if (!detector || !videoRef.value) return;
@@ -64,28 +62,11 @@ const detectHands = async () => {
     
     if (hands.length > 0) {
       const hand = hands[0];
-      if (DEBUG) {
-        // Only log index finger related points and handedness
-        const indexFingerPoints = {
-          handedness: hand.handedness,
-          score: hand.score,
-          keypoints: hand.keypoints
-            .filter((_, index) => [0, 5, 6, 7, 8].includes(index))
-            .map(k => ({
-              x: Math.round(k.x),
-              y: Math.round(k.y),
-              name: k.name
-            }))
-        };
-        console.log('Index finger tracking:', indexFingerPoints);
-      }
-      
-      // Pass both keypoints and handedness
       handleGesture({
         keypoints: [
-          hand.keypoints[0],  // wrist
-          hand.keypoints[5],  // index finger MCP
-          hand.keypoints[8]   // index finger tip
+          hand.keypoints[0],
+          hand.keypoints[5],
+          hand.keypoints[8]
         ],
         handedness: hand.handedness
       });
@@ -97,9 +78,6 @@ const detectHands = async () => {
   }
 };
 
-// Remove isOnLeftSide and isOnRightSide functions as we'll use handedness instead
-
-// Update handle gesture to use handedness
 const handleGesture = (handData: { keypoints: any[], handedness: string }) => {
   const now = Date.now();
   if (now - lastNavigationTime.value < NAVIGATION_COOLDOWN) {
@@ -109,7 +87,6 @@ const handleGesture = (handData: { keypoints: any[], handedness: string }) => {
   currentGesture.value = 'No gesture detected';
   gestureConfidence.value = 0;
 
-  // Navigate based on which hand is detected
   if (handData.handedness === 'Left') {
     updateGestureState('Left Hand');
     navigateToPrevious();
@@ -130,11 +107,6 @@ const navigationLinks = [
   { path: '/about', name: 'About Me' }
 ];
 
-const currentNavItem = computed(() => {
-  const current = navigationLinks.find(link => link.path === router.currentRoute.value.path);
-  return current?.name || 'Home';
-});
-
 const navigateToNext = () => {
   const currentIndex = navigationLinks.findIndex(link => link.path === router.currentRoute.value.path);
   const nextIndex = (currentIndex + 1) % navigationLinks.length;
@@ -146,65 +118,6 @@ const navigateToPrevious = () => {
   const prevIndex = currentIndex <= 0 ? navigationLinks.length - 1 : currentIndex - 1;
   router.push(navigationLinks[prevIndex].path);
 };
-
-const lastNavigationTime = ref(Date.now());
-const NAVIGATION_COOLDOWN = 1500; // Increased cooldown
-const currentGesture = ref('No gesture detected');
-const gestureConfidence = ref(0);
-
-const GESTURE_THRESHOLD = {
-  SCREEN_DIVIDE: 0.5, // Screen midpoint (50%)
-  MIN_CONFIDENCE: 0.7
-};
-
-// Remove or comment out unused gesture functions
-// isPointingLeft, isPointingRight, calculateAngle, etc.
-
-const isPointingUp = ref(false);
-const isTwoFingersUp = ref(false);
-const selectionCooldown = ref(false);
-
-const isFingerPointingUp = (keypoints: any[]) => {
-  if (keypoints.length !== 3) return false; // Ensure we have exactly 3 points
-  
-  const [wrist, indexBase, indexTip] = keypoints;
-  const verticalDistance = wrist.y - indexTip.y;
-  const angle = calculateAngle(wrist, indexBase, indexTip);
-  
-  return verticalDistance > 100 && 
-         angle > 70 && 
-         angle < 110;
-};
-
-const handleSelection = async () => {
-  if (selectionCooldown.value) return;
-  selectionCooldown.value = true;
-  
-  // Get current route and path parameters
-  const currentRoute = router.currentRoute.value;
-  const currentPath = currentRoute.path;
-
-  // Handle different sections
-  if (currentPath === '/') {
-    // Handle photo selection
-    router.push('/photos/1'); // Replace with actual photo ID
-  } else if (currentPath === '/models') {
-    router.push('/models/1'); // Replace with actual model ID
-  } else if (currentPath === '/videos') {
-    router.push('/videos/1'); // Replace with actual video ID
-  }
-
-  // Reset cooldown after 2 seconds
-  setTimeout(() => {
-    selectionCooldown.value = false;
-    isPointingUp.value = false;
-  }, 2000);
-};
-
-const isThreeFingerUp = ref(false);
-const isThumbUp = ref(false);
-const isVictorySign = ref(false);
-const isOpenPalm = ref(false);
 
 const updateGestureState = (gestureName: string, confidence: number = 1) => {
   if (confidence > gestureConfidence.value) {
@@ -234,18 +147,14 @@ const toggleNavigation = async () => {
         const model = handPoseDetection.SupportedModels.MediaPipeHands;
         detector = await handPoseDetection.createDetector(model, {
           runtime: 'mediapipe',
-          modelType: 'full',  // Change to full model
+          modelType: 'full',
           maxHands: 1,
-          solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
-          minHandDetectionConfidence: 0.7,
-          minHandPresenceConfidence: 0.7,
-          minTrackingConfidence: 0.7
+          solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands'
         });
 
         detectHands();
       }
     } else {
-      // Stop everything
       isActive.value = false;
       if (videoRef.value?.srcObject) {
         const stream = videoRef.value.srcObject as MediaStream;
@@ -270,16 +179,18 @@ const toggleNavigation = async () => {
 };
 
 onMounted(() => {
-  // Initialize with controls disabled
   isActive.value = false;
   isLoading.value = false;
 });
 
 onUnmounted(() => {
-  if (loadingTimeout) {
-    clearTimeout(loadingTimeout);
+  if (videoRef.value?.srcObject) {
+    const stream = videoRef.value.srcObject as MediaStream;
+    stream.getTracks().forEach(track => track.stop());
   }
-
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
 });
 </script>
 
@@ -299,4 +210,3 @@ onUnmounted(() => {
 
 
 
-  

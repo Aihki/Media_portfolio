@@ -39,7 +39,7 @@
 
           <div
             v-for="feedback in recentFeedback"
-            :key="feedback.id"
+            :key="feedback.contentId"
             class="bg-gray-700 rounded-lg p-4"
           >
             <div class="flex items-center justify-between mb-2">
@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import TypewriterText from '../components/TypewriterText.vue';
+import TypewriterText from '../components/TypeWriterText.vue';
 import { getStats, type Stats } from '../api';
 import { getRecentFeedback } from '../services/feedbackService';
 import type { Feedback } from '../services/feedbackService';
@@ -98,7 +98,13 @@ onMounted(async () => {
     ]);
     
     stats.value = statsData;
-    recentFeedback.value = feedbackData;
+    recentFeedback.value = feedbackData.map(feedback => ({
+      contentId: feedback.contentId,
+      contentType: feedback.contentType,
+      rating: feedback.rating,
+      comment: feedback.comment,
+      createdAt: feedback.createdAt
+    }));
   } catch (error) {
     console.error('Failed to fetch data:', error);
   } finally {

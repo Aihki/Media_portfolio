@@ -22,7 +22,7 @@
             class="flex-grow px-3 py-2 bg-gray-700 text-gray-200 rounded-md"
           >
             <option value="">Select category</option>
-            <option v-for="cat in categories" :key="cat._id" :value="cat._id">
+            <option v-for="cat in categories" :key="cat._id.$oid" :value="cat._id">
               {{ cat.name }}
             </option>
           </select>
@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '../utils/AuthStore';
-import { listCategories, createCategory } from '../api';
+import { listCategories, createCategory, type Category } from '../api';
 import { classifyImage } from '../utils/imageClassifier';
 
 const authStore = useAuthStore();
@@ -115,8 +115,14 @@ const emit = defineEmits<{
 const file = ref<File | null>(null);
 const error = ref<string | null>(null);
 const name = ref('');
-const categories = ref<Array<{ _id: string; name: string }>>([]);
-const selectedCategory = ref('');
+const categories = ref<Category[]>([]);
+
+interface CategoryId {
+  $oid: string;
+}
+
+const selectedCategory = ref<string | CategoryId>('');
+
 const showNewCategory = ref(false);
 const newCategoryName = ref('');
 
@@ -147,14 +153,14 @@ async function createNewCategory() {
   
   try {
     const newCategory = await createCategory(newCategoryName.value);
-    console.log('New category created:', newCategory); 
+    console.log('New category created:', newCategory);
     
-    if (!newCategory._id) {
+    if (!newCategory._id?.$oid) {
       throw new Error('Invalid category ID received');
     }
     
     categories.value = [...categories.value, newCategory];
-    selectedCategory.value = newCategory._id; 
+    selectedCategory.value = newCategory._id.$oid;
     showNewCategory.value = false;
     newCategoryName.value = '';
   } catch (err) {
@@ -177,7 +183,7 @@ const classifyCurrentFile = async () => {
     );
 
     if (matchingCategory) {
-      selectedCategory.value = matchingCategory._id;
+      selectedCategory.value = matchingCategory._id.$oid;
     }
   } catch (err) {
     console.error('Classification error:', err);
@@ -209,8 +215,7 @@ const handleSuggestionClick = (suggestion: string) => {
   );
 
   if (matchingCategory) {
-    selectedCategory.value = matchingCategory._id;
-
+    selectedCategory.value = matchingCategory._id.$oid;
     suggestions.value = [];
     predictions.value = [];
   } else {
@@ -235,15 +240,17 @@ const handleUpload = async () => {
   }
 
   try {
+    const categoryId = typeof selectedCategory.value === 'object' && '$oid' in selectedCategory.value
+      ? selectedCategory.value.$oid
+      : selectedCategory.value;
     
     const uploadData = {
       file: file.value,
       name: name.value,
-      categoryId: selectedCategory.value
+      categoryId
     };
 
     console.log('UploadForm sending:', uploadData);
-    
     emit('upload', uploadData);
 
     file.value = null;
