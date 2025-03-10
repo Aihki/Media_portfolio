@@ -147,8 +147,14 @@ async function createNewCategory() {
   
   try {
     const newCategory = await createCategory(newCategoryName.value);
-    categories.value = [...categories.value, newCategory]; 
-    selectedCategory.value = newCategory.id!;
+    console.log('New category created:', newCategory); 
+    
+    if (!newCategory._id) {
+      throw new Error('Invalid category ID received');
+    }
+    
+    categories.value = [...categories.value, newCategory];
+    selectedCategory.value = newCategory._id; 
     showNewCategory.value = false;
     newCategoryName.value = '';
   } catch (err) {
