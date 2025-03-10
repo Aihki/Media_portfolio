@@ -9,7 +9,7 @@
 use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
-    http::StatusCode,
+    http::StatusCode
 };
 use std::{fs, path::PathBuf, sync::Arc};
 use mongodb::Database;
