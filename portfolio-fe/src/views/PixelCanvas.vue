@@ -1,16 +1,19 @@
 <template>
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-4xl mx-auto px-4">
     <div class="text-center mb-8">
       <h2 class="text-3xl font-bold text-gray-100 mb-4">Pixel Canvas</h2>
       <p class="text-gray-400 mb-6">Click squares to draw</p>
     </div>
 
-    <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-      <div class="canvas-container bg-white rounded-lg overflow-hidden mx-auto">
+    <div class="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-lg">
+      <div 
+        class="canvas-container bg-white rounded-lg overflow-hidden mx-auto"
+        :style="{ width: `${CANVAS_SIZE}px`, height: `${CANVAS_SIZE}px` }"
+      >
         <canvas ref="canvas" id="grid-canvas"></canvas>
       </div>
 
-      <div class="mt-4 flex flex-wrap items-center justify-center gap-4">
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
         <div class="flex items-center gap-2">
           <label class="text-white">Color:</label>
           <input 
@@ -31,11 +34,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 
-const CANVAS_SIZE = 500;  
-const GRID_SIZE = 50;    
-const CELL_SIZE = CANVAS_SIZE / GRID_SIZE; 
+const MOBILE_BREAKPOINT = 768;
+const getCanvasSize = () => {
+  if (typeof window === 'undefined') return 500;
+  const screenWidth = window.innerWidth;
+  const padding = screenWidth < MOBILE_BREAKPOINT ? 32 : 40;
+  return Math.min(screenWidth - padding, 500);
+};
+
+const CANVAS_SIZE = ref(getCanvasSize());
+
+const GRID_SIZE = computed(() => 
+  window.innerWidth < MOBILE_BREAKPOINT ? 32 : 64
+);
+
+const CELL_SIZE = computed(() => 
+  CANVAS_SIZE.value / GRID_SIZE.value
+);
 
 const canvas = ref(null);
 const fabricCanvas = ref(null);
@@ -58,18 +75,17 @@ const initCanvas = async () => {
   }
 
   fabricCanvas.value = new fabric.Canvas('grid-canvas', {
-    width: CANVAS_SIZE,
-    height: CANVAS_SIZE,
+    width: CANVAS_SIZE.value,
+    height: CANVAS_SIZE.value,
     backgroundColor: 'white',
     selection: false
   });
 
   squares.value = [];
 
-
-  for (let i = 0; i <= GRID_SIZE; i++) {
+  for (let i = 0; i <= GRID_SIZE.value; i++) {
     fabricCanvas.value.add(new fabric.Line(
-      [i * CELL_SIZE, 0, i * CELL_SIZE, CANVAS_SIZE],
+      [i * CELL_SIZE.value, 0, i * CELL_SIZE.value, CANVAS_SIZE.value],
       {
         stroke: '#666',
         strokeWidth: 1,
@@ -79,7 +95,7 @@ const initCanvas = async () => {
     ));
     
     fabricCanvas.value.add(new fabric.Line(
-      [0, i * CELL_SIZE, CANVAS_SIZE, i * CELL_SIZE],
+      [0, i * CELL_SIZE.value, CANVAS_SIZE.value, i * CELL_SIZE.value],
       {
         stroke: '#666',
         strokeWidth: 1,
@@ -89,14 +105,13 @@ const initCanvas = async () => {
     ));
   }
 
-
-  for (let i = 0; i < GRID_SIZE; i++) {
-    for (let j = 0; j < GRID_SIZE; j++) {
+  for (let i = 0; i < GRID_SIZE.value; i++) {
+    for (let j = 0; j < GRID_SIZE.value; j++) {
       const square = new fabric.Rect({
-        left: j * CELL_SIZE,
-        top: i * CELL_SIZE,
-        width: CELL_SIZE - 1,
-        height: CELL_SIZE - 1,
+        left: j * CELL_SIZE.value,
+        top: i * CELL_SIZE.value,
+        width: CELL_SIZE.value - 1,
+        height: CELL_SIZE.value - 1,
         fill: 'white',
         selectable: false,
         hoverCursor: 'pointer'
@@ -118,6 +133,27 @@ const initCanvas = async () => {
       squares.value.push(square);
     }
   }
+
+  fabricCanvas.value.on('touch:start', handleTouchStart);
+  fabricCanvas.value.on('touch:move', handleTouchMove);
+};
+
+const handleTouchStart = (e: any) => {
+  const touch = e.e.touches[0];
+  const target = fabricCanvas.value.findTarget(touch);
+  if (target) {
+    target.set('fill', target.fill === 'white' ? currentColor.value : 'white');
+    fabricCanvas.value.renderAll();
+  }
+};
+
+const handleTouchMove = (e: any) => {
+  const touch = e.e.touches[0];
+  const target = fabricCanvas.value.findTarget(touch);
+  if (target) {
+    target.set('fill', target.fill === 'white' ? currentColor.value : 'white');
+    fabricCanvas.value.renderAll();
+  }
 };
 
 const clearCanvas = () => {
@@ -132,8 +168,8 @@ const downloadCanvas = () => {
   
 
   const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = CANVAS_SIZE;
-  tempCanvas.height = CANVAS_SIZE;
+  tempCanvas.width = CANVAS_SIZE.value;
+  tempCanvas.height = CANVAS_SIZE.value;
   const ctx = tempCanvas.getContext('2d')!;
   
 
@@ -151,32 +187,72 @@ const downloadCanvas = () => {
   link.click();
 };
 
+const handleResize = () => {
+  CANVAS_SIZE.value = getCanvasSize();
+  initCanvas();
+};
+
 onMounted(() => {
   initCanvas();
-  window.addEventListener('resize', initCanvas);
+  window.addEventListener('resize', handleResize);
 });
 
 onUnmounted(() => {
   fabricCanvas.value?.dispose();
-  window.removeEventListener('resize', initCanvas);
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
 <style scoped>
 .canvas-container {
-  width: 500px;  
-  height: 500px; 
+  width: 100% !important;
+  max-width: 500px;
+  aspect-ratio: 1;
   margin: 0 auto;
+  touch-action: none;
 }
 
 canvas {
-  width: 500px;   
-  height: 500px;  
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
 }
 
 #grid-canvas {
   touch-action: none;
   image-rendering: pixelated;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .max-w-4xl {
+    padding: 0.5rem;
+  }
+  
+  .bg-gray-800 {
+    padding: 0.75rem;
+  }
+  
+  .mt-4.flex {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  button {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    min-width: 80px;
+    touch-action: manipulation;
+  }
+  
+  input[type="color"] {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+html, body {
+  overscroll-behavior-y: contain;
 }
 
 input[type="color"] {

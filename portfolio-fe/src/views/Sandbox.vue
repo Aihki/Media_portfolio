@@ -1,45 +1,66 @@
 <template>
   <div class="flex items-center justify-center bg-gray-900">
     <div class="w-full bg-gray-800 rounded-lg shadow-lg p-8">
-      <div class="flex flex-col gap-4 mb-4">
+    
+      <div class="bg-gray-700 rounded-lg p-4 mb-6">
         <div class="flex items-center justify-between">
           <button
             @click="previousModel"
+            :disabled="currentModelIndex === 0"
             aria-label="Previous model"
-            class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <i class="pi pi-chevron-left"></i>
           </button>
 
-          <div class="flex items-center gap-4">
-            <div v-if="isLoading" class="animate-spin">
-              <i class="pi pi-spinner text-white"></i>
-            </div>
-
-            <div class="text-white text-xl">
+          <div class="flex flex-col items-center gap-2">
+            <div class="text-white text-xl font-semibold">
               {{ currentModelName }}
             </div>
-
-            <button
-              @click="toggleRotation"
-              aria-label="Toggle model rotation"
-              class="px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors text-sm"
-            >
-              {{ isRotating ? 'Stop' : 'Rotate' }}
-            </button>
+            <div class="text-gray-400 text-sm">
+              {{ models[currentModelIndex]?.category_name || 'No category' }}
+            </div>
+            <div class="flex items-center gap-2">
+              <div v-if="isLoading" class="animate-spin text-blue-400">
+                <i class="pi pi-spinner"></i>
+              </div>
+              <button
+                @click="toggleRotation"
+                class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+              >
+                {{ isRotating ? 'Stop Rotation' : 'Start Rotation' }}
+              </button>
+            </div>
           </div>
 
           <button
             @click="nextModel"
+            :disabled="currentModelIndex === models.length - 1"
             aria-label="Next model"
-            class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <i class="pi pi-chevron-right"></i>
           </button>
         </div>
       </div>
 
-      <canvas ref="canvas" class="w-full"></canvas>
+    
+      <div class="relative">
+        <canvas ref="canvas" class="w-full rounded-lg"></canvas>
+        <div class="absolute bottom-4 right-4 text-sm text-white bg-black bg-opacity-50 px-3 py-1 rounded">
+          WASD to move | Mouse to look
+        </div>
+      </div>
+
+  
+      <div class="mt-4 flex items-center justify-center gap-1">
+        <div 
+          v-for="(_, index) in models" 
+          :key="index"
+          class="w-2 h-2 rounded-full transition-colors"
+          :class="index === currentModelIndex ? 'bg-blue-500' : 'bg-gray-600'"
+        ></div>
+      </div>
     </div>
   </div>
 </template>
@@ -203,3 +224,17 @@
     stopRotation();
   });
 </script>
+
+<style scoped>
+canvas {
+  min-height: 500px;
+  background-color: #1a1a1a;
+  touch-action: none;
+}
+
+@media (max-width: 768px) {
+  canvas {
+    min-height: 300px;
+  }
+}
+</style>
