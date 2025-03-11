@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://nestorl-552.educloud.metropolia.fi';
+const API_URL = 'http://127.0.0.1:3000';
 
 export function getFileUrl(filename: string) {
   return `${API_URL}/static/${filename}`;
