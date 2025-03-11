@@ -16,6 +16,22 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-    },
+    }
   },
+  server: {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/javascript',
+    },
+    fs: {
+      strict: false
+    }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        format: 'es'
+      }
+    }
+  }
 });

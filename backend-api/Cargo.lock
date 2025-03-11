@@ -124,6 +124,7 @@ dependencies = [
  "futures",
  "futures-util",
  "http",
+ "hyper",
  "image",
  "jsonwebtoken",
  "mime_guess",
