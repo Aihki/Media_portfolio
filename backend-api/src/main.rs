@@ -73,7 +73,7 @@ async fn main() {
 
     let app = routes::create_routes(app_state).layer(cors);
 
-    let addr = "127.0.0.1:3000";
+    let addr = "0.0.0.0:3000";
     println!("🚀 Server running at http://{}", addr);
     axum::Server::bind(&addr.parse().unwrap())
         .serve(app.into_make_service())
