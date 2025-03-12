@@ -270,7 +270,7 @@
 
   function loadModel(url: string, scene: Scene) {
     try {
-      SceneLoader.ImportMeshAsync('', '', url, scene, undefined, '.splat')
+      SceneLoader.ImportMeshAsync('', url, '', scene)
         .then(result => {
           if (result.meshes.length > 0) {
             const splat = result.meshes[0];
