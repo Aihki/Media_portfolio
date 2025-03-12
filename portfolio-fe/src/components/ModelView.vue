@@ -87,8 +87,7 @@
 
     try {
       const filename = props.model.split('/').pop() || '';
-      // Use static path directly
-      const modelPath = `/static/models/${filename}`;
+      const modelPath = `/static/models/${filename}`;  // Use direct static path
 
       console.log('Loading model:', {
         filename,
@@ -97,47 +96,49 @@
       });
 
       if (filename.endsWith('.splat')) {
-        // Handle .splat files
-        fetch(modelPath)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.arrayBuffer();
-          })
-          .then(buffer => {
-            // Ensure proper alignment for Float32Array
-            const pointCount = Math.floor(buffer.byteLength / 24); // 6 floats per point
-            const alignedLength = pointCount * 24;
-            
-            const alignedBuffer = new ArrayBuffer(alignedLength);
-            const view = new Uint8Array(alignedBuffer);
-            view.set(new Uint8Array(buffer.slice(0, alignedLength)));
+        fetch(modelPath, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/octet-stream'
+          }
+        })
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return response.arrayBuffer();
+        })
+        .then(buffer => {
+          // Ensure proper alignment for Float32Array
+          const pointCount = Math.floor(buffer.byteLength / 24); // 6 floats per point
+          const alignedLength = pointCount * 24;
+          
+          const alignedBuffer = new ArrayBuffer(alignedLength);
+          const view = new Uint8Array(alignedBuffer);
+          view.set(new Uint8Array(buffer.slice(0, alignedLength)));
 
-            // Create blob with aligned data
-            const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
-            const blobUrl = URL.createObjectURL(blob);
+          // Create blob with aligned data
+          const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
+          const blobUrl = URL.createObjectURL(blob);
 
-            return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
-              .then(result => {
-                URL.revokeObjectURL(blobUrl);
-                return result;
-              })
-              .catch(error => {
-                URL.revokeObjectURL(blobUrl);
-                throw error;
-              });
-          })
-          .then(result => {
-            if (result.meshes.length > 0) {
-              const splat = result.meshes[0];
-              splat.position = Vector3.Zero();
-              splat.scaling = new Vector3(5, 5, 5);
-            }
-          })
-          .catch(error => {
-            console.error('Model loading error:', error);
-          });
+          return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
+            .then(result => {
+              URL.revokeObjectURL(blobUrl);
+              return result;
+            })
+            .catch(error => {
+              URL.revokeObjectURL(blobUrl);
+              throw error;
+            });
+        })
+        .then(result => {
+          if (result.meshes.length > 0) {
+            const splat = result.meshes[0];
+            splat.position = Vector3.Zero();
+            splat.scaling = new Vector3(5, 5, 5);
+          }
+        })
+        .catch(error => {
+          console.error('Model loading error:', error);
+        });
       } else {
         // Handle regular models
         SceneLoader.ImportMeshAsync('', '', modelPath, scene)
