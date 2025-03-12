@@ -108,62 +108,42 @@ export async function uploadModel(data: {
     throw new Error('Missing required upload data');
   }
 
-  let finalBlob: Blob;
-  let originalSize = 0;
-  let alignedLength = 0;
-  let padding = 0;
 
-  if (data.file.name.endsWith('.splat')) {
-    const buffer = await data.file.arrayBuffer();
-    originalSize = buffer.byteLength;
-    
-    // Ensure buffer length is multiple of 4 for Float32Array
-    const remainder = originalSize % 4;
-    padding = remainder ? 4 - remainder : 0;
-    alignedLength = originalSize + padding;
-    
-    // Create properly aligned buffer
-    const alignedBuffer = new ArrayBuffer(alignedLength);
-    const view = new Uint8Array(alignedBuffer);
-    
-    // Copy original data
-    view.set(new Uint8Array(buffer));
-    
-    // Zero-fill padding
-    if (padding > 0) {
-      view.fill(0, originalSize, alignedLength);
-    }
+  const buffer = await data.file.arrayBuffer();
+  
+ 
+  const remainder = buffer.byteLength % 4;
+  const padding = remainder ? 4 - remainder : 0;
+  const alignedLength = buffer.byteLength + padding;
+  
 
-    // Validate alignment and content
-    try {
-      const float32View = new Float32Array(alignedBuffer);
-      if (float32View.length * 4 !== alignedLength) {
-        throw new Error('Buffer alignment validation failed');
-      }
-    } catch (e) {
-      console.error('Float32Array validation failed:', e);
-      throw new Error('Invalid splat file format');
-    }
+  const alignedBuffer = new ArrayBuffer(alignedLength);
+  const view = new Uint8Array(alignedBuffer);
+  
 
-    finalBlob = new Blob([alignedBuffer], { type: 'application/splat' });
-  } else {
-    const buffer = await data.file.arrayBuffer();
-    originalSize = buffer.byteLength;
-    finalBlob = new Blob([buffer], { type: 'application/octet-stream' });
+  view.set(new Uint8Array(buffer));
+  
+
+  for (let i = buffer.byteLength; i < alignedLength; i++) {
+    view[i] = 0;
   }
 
+  const blob = new Blob([alignedBuffer], { 
+    type: data.file.name.endsWith('.splat') ? 'application/splat' : 'application/octet-stream' 
+  });
+
   const formData = new FormData();
-  formData.append('file', new File([finalBlob], data.file.name, {
-    type: finalBlob.type
+  formData.append('file', new File([blob], data.file.name, {
+    type: blob.type
   }));
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
   console.log('📦 Uploading model:', {
-    originalSize,
-    alignedSize: alignedLength || originalSize,
+    originalSize: buffer.byteLength,
+    alignedSize: alignedLength,
     padding,
-    type: finalBlob.type,
+    type: blob.type,
     name: data.name
   });
 

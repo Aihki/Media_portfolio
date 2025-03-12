@@ -47,7 +47,7 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/upload-photo", post(photos::upload_photo))
         .route("/api/upload-model", post(models::upload_model))
         .route("/api/upload-video", post(videos::upload_video))
-        .route("/api/models", get(models::list_models))
+        .route("/api/models:filename", get(models::list_models))
         .route("/files/:filename", get(photos::get_file))
         .route("/api/photos", get(photos::list_photos))
         .route("/api/videos", get(videos::list_videos))
