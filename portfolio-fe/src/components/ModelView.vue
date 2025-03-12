@@ -98,19 +98,14 @@
                     return response.arrayBuffer();
                 })
                 .then(buffer => {
-                    // Ensure proper 4-byte alignment
-                    const remainder = buffer.byteLength % 16; // Ensure total alignment for 4 float32 values
-                    const paddedLength = remainder ? buffer.byteLength + (16 - remainder) : buffer.byteLength;
-                    const alignedBuffer = new ArrayBuffer(paddedLength);
-                    new Uint8Array(alignedBuffer).set(new Uint8Array(buffer));
-                    
-                    // Validate alignment
-                    try {
-                        new Float32Array(alignedBuffer);
-                    } catch (e) {
-                        console.error('Buffer alignment error:', e);
-                        throw new Error('Invalid buffer alignment');
-                    }
+                  
+                    const pointBytes = 24;
+                    const points = Math.floor(buffer.byteLength / pointBytes);
+                    const alignedLength = points * pointBytes;
+
+  
+                    const alignedBuffer = new ArrayBuffer(alignedLength);
+                    new Uint8Array(alignedBuffer).set(new Uint8Array(buffer.slice(0, alignedLength)));
 
                     const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
                     const blobUrl = URL.createObjectURL(blob);
