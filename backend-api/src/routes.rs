@@ -43,12 +43,11 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         ]);
 
     Router::new()
-        // API endpoints first
+
         .route("/api/upload-photo", post(photos::upload_photo))
         .route("/api/upload-model", post(models::upload_model))
         .route("/api/upload-video", post(videos::upload_video))
-        .route("/api/models:filename", get(models::list_models))
-        .route("/files/:filename", get(photos::get_file))
+        .route("/api/models", get(models::list_models))
         .route("/api/photos", get(photos::list_photos))
         .route("/api/videos", get(videos::list_videos))
         .route("/api/login", post(login_handler))
@@ -61,10 +60,11 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/models/:id", delete(models::delete_model))
         .route("/api/photos/:id", delete(photos::delete_photo))
         .route("/api/videos/:id", delete(videos::delete_video))
-        .route("/static/models/:filename", get(models::get_file)) 
-    
+
+
         .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
         .nest_service("/static/videos", ServeDir::new(videos::VIDEO_FOLDER))
+        .nest_service("/static/models", ServeDir::new(models::MODEL_FOLDER))
         .nest_service("/static", ServeDir::new("static"))     
         .layer(cors)
         .layer(DefaultBodyLimit::max(1024 * 1024 * 500))
