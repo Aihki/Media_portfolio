@@ -108,8 +108,9 @@ export async function uploadModel(data: {
     throw new Error('Missing required upload data');
   }
 
+  // Ensure the file is handled as binary data
   const formData = new FormData();
-  formData.append('file', data.file);
+  formData.append('file', data.file, data.file.name);
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
@@ -120,6 +121,13 @@ export async function uploadModel(data: {
     },
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
+    responseType: 'json',
+    transformRequest: [(data, headers) => {
+      if (headers) {
+        delete headers['Content-Type'];
+      }
+      return data;
+    }],
   });
 
   if (!response.data) {

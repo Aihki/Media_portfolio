@@ -20,6 +20,8 @@ use uuid::Uuid;
 use futures_util::StreamExt;
 use mongodb::bson::oid::ObjectId;
 use mongodb::bson::doc;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 
 /// Directory where 3D models are stored
 pub const MODEL_FOLDER: &str = "static/models";
@@ -67,23 +69,37 @@ pub async fn upload_model(
                     })?;
                 }
 
-
-                let mut file = std::fs::File::create(&filepath).map_err(|e| {
+                let mut file = File::create(&filepath).await.map_err(|e| {
                     eprintln!("Failed to create file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
+                let mut all_data = Vec::new();
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
                     StatusCode::BAD_REQUEST
                 })? {
-                    file.write_all(&chunk).map_err(|e| {
-                        eprintln!("Failed to write chunk: {}", e);
-                        StatusCode::INTERNAL_SERVER_ERROR
-                    })?;
+                    all_data.extend_from_slice(&chunk);
                 }
 
-                saved_filename = filename.clone();
+                // Ensure data length is multiple of 4 for Float32Array
+                let padding = (4 - (all_data.len() % 4)) % 4;
+                if padding > 0 {
+                    all_data.extend(vec![0u8; padding]);
+                }
+
+                file.write_all(&all_data).await.map_err(|e| {
+                    eprintln!("Failed to write file: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+
+                file.sync_all().await.map_err(|e| {
+                    eprintln!("Failed to sync file: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+
+                saved_filename = filename;
+                println!("✅ Model saved successfully: {}", saved_filename);
             },
             _ => {}
         }
