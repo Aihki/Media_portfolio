@@ -14,7 +14,7 @@ use axum::{
     body::StreamBody,
     http::header,
 };
-use std::{fs, path::PathBuf, sync::Arc};
+use std::{fs, path::{PathBuf, Path}, sync::Arc};  // Added Path import
 use mongodb::Database;
 use crate::models::{Model, ModelResponse, Category};  
 use serde_json::json;
@@ -43,7 +43,7 @@ pub async fn upload_model(
     let mut name = String::new();
     let mut category = String::new();
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
+    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
         eprintln!("Error processing multipart form: {}", e);
         StatusCode::BAD_REQUEST
     })? {
@@ -248,14 +248,14 @@ pub async fn delete_model(
 }
 
 pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
-    let path = PathBuf::from(MODEL_FOLDER).join(filename);
+    let path = PathBuf::from(MODEL_FOLDER).join(&filename);  
     
     match File::open(&path).await {
         Ok(file) => {
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
             
-            let content_type = if filename.ends_with(".splat") {
+            let content_type = if filename.ends_with(".splat") { 
                 "application/splat"
             } else {
                 "application/octet-stream"
