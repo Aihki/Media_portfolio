@@ -255,7 +255,6 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
 
-            // Set proper binary content type for .splat files
             let content_type = if filename.ends_with(".splat") {
                 "application/octet-stream"
             } else {
@@ -267,7 +266,7 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::ACCEPT_RANGES, "bytes")
                 .header(header::CACHE_CONTROL, "no-cache")
-                .header(header::CROSS_ORIGIN_RESOURCE_POLICY, "cross-origin")
+                .header("Cross-Origin-Resource-Policy", "cross-origin") 
                 .body(body)
                 .unwrap()
                 .into_response()
