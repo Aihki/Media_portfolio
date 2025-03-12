@@ -108,28 +108,33 @@ export async function uploadModel(data: {
     throw new Error('Missing required upload data');
   }
 
-
   const buffer = await data.file.arrayBuffer();
   
-
-  const paddedSize = Math.ceil(buffer.byteLength / 4) * 4;
-  const alignedBuffer = new ArrayBuffer(paddedSize);
-  new Uint8Array(alignedBuffer).set(new Uint8Array(buffer));
-
-  const blob = new Blob([alignedBuffer], { 
-    type: 'application/octet-stream' 
-  });
+  // Calculate padding needed for 4-byte alignment
+  const padding = (4 - (buffer.byteLength % 4)) % 4;
+  const alignedLength = buffer.byteLength + padding;
+  
+  // Create aligned buffer with padding
+  const alignedBuffer = new ArrayBuffer(alignedLength);
+  const sourceView = new Uint8Array(buffer);
+  const targetView = new Uint8Array(alignedBuffer);
+  
+  // Copy original data
+  targetView.set(sourceView);
+  // Fill padding with zeros
+  for (let i = buffer.byteLength; i < alignedLength; i++) {
+    targetView[i] = 0;
+  }
 
   const formData = new FormData();
-  formData.append('file', new File([blob], data.file.name, {
-    type: 'application/octet-stream'
-  }));
+  formData.append('file', new Blob([alignedBuffer], { type: 'application/octet-stream' }));
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
   console.log('📦 Uploading model:', {
     originalSize: buffer.byteLength,
     alignedSize: alignedBuffer.byteLength,
+    padding,
     name: data.name
   });
 
