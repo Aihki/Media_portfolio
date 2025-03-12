@@ -31,7 +31,7 @@
     Vector3,
     SceneLoader,
     HemisphericLight,
-  } from '@babylonjs/core';
+  } from '@babylonjs/core;
 
   const props = defineProps<{
     model: string;
@@ -86,19 +86,20 @@
     if (!scene) return;
 
     try {
-      const filename = props.model.split('/').pop() || '';
-      const modelPath = `/api/models/file/${filename}`;
+      const modelUrl = props.model.startsWith('http') ? new URL(props.model) : new URL(props.model, window.location.origin);
+      const filename = modelUrl.pathname.split('/').pop() || '';
 
       console.log('Loading model:', {
         filename,
-        modelPath,
+        modelUrl: modelUrl.toString(),
         originalUrl: props.model
       });
 
+      // Use the full static path
       SceneLoader.ImportMeshAsync(
         '',
         '',
-        modelPath,
+        modelUrl.toString(),
         scene,
         undefined,
         filename.endsWith('.splat') ? '.splat' : undefined

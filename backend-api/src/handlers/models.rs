@@ -255,16 +255,20 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
 
-            let response = Response::builder()
-                .header(header::CONTENT_TYPE, "application/octet-stream")
-                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", filename))
+            let content_type = if filename.ends_with(".splat") {
+                "application/splat"
+            } else {
+                "application/octet-stream"
+            };
+
+            Response::builder()
+                .header(header::CONTENT_TYPE, content_type)
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::ACCEPT_RANGES, "bytes")
                 .header(header::CACHE_CONTROL, "no-cache")
                 .body(body)
-                .unwrap();
-
-            response.into_response()
+                .unwrap()
+                .into_response()
         }
         Err(_) => StatusCode::NOT_FOUND.into_response()
     }
