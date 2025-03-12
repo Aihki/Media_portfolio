@@ -92,37 +92,27 @@
         console.log('Loading model:', { modelPath, originalUrl: props.model });
 
         if (modelPath.endsWith('.splat')) {
-            fetch(modelPath)
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.arrayBuffer();
+            // Use proper splat loading format
+            SceneLoader.ImportMeshAsync("splat", "", modelPath, scene)
+                .then(result => {
+                    if (result.meshes.length > 0) {
+                        const splat = result.meshes[0];
+                        splat.position = Vector3.Zero();
+                        splat.scaling = new Vector3(5, 5, 5);
+                    }
                 })
-                .then(buffer => {
-                  
-                    const pointBytes = 24;
-                    const points = Math.floor(buffer.byteLength / pointBytes);
-                    const alignedLength = points * pointBytes;
-
-  
-                    const alignedBuffer = new ArrayBuffer(alignedLength);
-                    new Uint8Array(alignedBuffer).set(new Uint8Array(buffer.slice(0, alignedLength)));
-
-                    const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
-                    const blobUrl = URL.createObjectURL(blob);
-
-                    return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
-                        .then(result => {
-                            URL.revokeObjectURL(blobUrl);
-                            if (result.meshes.length > 0) {
-                                const splat = result.meshes[0];
-                                splat.position = Vector3.Zero();
-                                splat.scaling = new Vector3(5, 5, 5);
-                            }
-                        })
-                        .catch(error => {
-                            URL.revokeObjectURL(blobUrl);
-                            throw error;
-                        });
+                .catch(err => {
+                    console.error('Error loading splat:', err);
+                });
+        } else {
+            // Regular model loading
+            SceneLoader.ImportMeshAsync("", "", modelPath, scene)
+                .then(result => {
+                    if (result.meshes.length > 0) {
+                        const mesh = result.meshes[0];
+                        mesh.position = Vector3.Zero();
+                        mesh.scaling = new Vector3(5, 5, 5);
+                    }
                 })
                 .catch(err => {
                     console.error('Error loading model:', err);
