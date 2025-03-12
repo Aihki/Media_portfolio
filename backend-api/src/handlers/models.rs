@@ -22,6 +22,7 @@ use mongodb::bson::oid::ObjectId;
 use mongodb::bson::doc;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use bytes::Bytes;
 
 /// Directory where 3D models are stored
 pub const MODEL_FOLDER: &str = "static/models";
@@ -60,21 +61,8 @@ pub async fn upload_model(
                 
                 println!("📦 Uploading model: {}", filename);
                 
-                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
-                
-                if !PathBuf::from(MODEL_FOLDER).exists() {
-                    fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
-                        eprintln!("Failed to create directory: {}", e);
-                        StatusCode::INTERNAL_SERVER_ERROR
-                    })?;
-                }
-
-                let mut file = File::create(&filepath).await.map_err(|e| {
-                    eprintln!("Failed to create file: {}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-
                 let mut all_data = Vec::new();
+                
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
                     StatusCode::BAD_REQUEST
@@ -83,18 +71,17 @@ pub async fn upload_model(
                 }
 
                 // Ensure data length is multiple of 4 for Float32Array
-                let padding = (4 - (all_data.len() % 4)) % 4;
-                if padding > 0 {
+                let remainder = all_data.len() % 4;
+                if remainder != 0 {
+                    let padding = 4 - remainder;
                     all_data.extend(vec![0u8; padding]);
                 }
 
-                file.write_all(&all_data).await.map_err(|e| {
-                    eprintln!("Failed to write file: {}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
+                println!("📊 Model data size: {} bytes (padded)", all_data.len());
 
-                file.sync_all().await.map_err(|e| {
-                    eprintln!("Failed to sync file: {}", e);
+                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
+                fs::write(&filepath, &all_data).map_err(|e| {
+                    eprintln!("Failed to write file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
