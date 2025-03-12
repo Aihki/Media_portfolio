@@ -126,7 +126,6 @@
     }
 
     try {
-      // Get the base URL and filename
       const modelUrl = new URL(model.url);
       const filename = modelUrl.pathname.split('/').pop() || '';
       const rootUrl = `${modelUrl.origin}/static/models/`;
@@ -137,26 +136,40 @@
         fullUrl: model.url
       });
 
+      const loadProgress = (evt: BABYLON.ISceneLoaderProgressEvent) => {
+        if (evt.lengthComputable) {
+          const progress = (evt.loaded * 100 / evt.total).toFixed();
+          console.log(`Loading progress: ${progress}%`);
+        }
+      };
+
       const result = await BABYLON.SceneLoader.ImportMeshAsync(
         '',
         rootUrl,
         filename,
         currentScene,
-        undefined,
+        loadProgress,
         filename.endsWith('.splat') ? '.splat' : undefined
       );
 
-      if (result.meshes.length > 0) {
-        currentMesh = result.meshes[0];
-        currentMesh.position = new BABYLON.Vector3(0, 0.5, 0);
-        currentMesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+      if (!result.meshes.length) {
+        throw new Error('No meshes loaded');
       }
+
+      currentMesh = result.meshes[0];
+      currentMesh.position = new BABYLON.Vector3(0, 0.5, 0);
+      currentMesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
 
       if (isRotating.value) {
         startRotation();
       }
     } catch (error) {
-      console.error('Error loading model:', error);
+      console.error('Model loading error:', error);
+      // Add user-friendly error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'text-red-500 text-center mt-4';
+      errorDiv.textContent = 'Failed to load model. Please try again.';
+      canvas.value?.parentNode?.appendChild(errorDiv);
     } finally {
       isLoading.value = false;
     }

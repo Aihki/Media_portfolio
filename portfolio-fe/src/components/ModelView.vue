@@ -31,7 +31,7 @@
     Vector3,
     SceneLoader,
     HemisphericLight,
-  } from '@babylonjs/core';
+  } from '@babylonjs/core;
 
   const props = defineProps<{
     model: string;
@@ -85,7 +85,28 @@
   function loadModel() {
     if (!scene) return;
 
-    SceneLoader.ImportMeshAsync('', '', props.model, scene, undefined, '.splat')
+    try {
+      // Get the base URL and ensure proper path handling
+      const modelUrl = new URL(props.model);
+      const filename = modelUrl.pathname.split('/').pop() || '';
+      const rootUrl = `${modelUrl.origin}/static/models/`;
+
+      console.log('Loading model:', {
+        rootUrl,
+        filename,
+        fullUrl: props.model
+      });
+
+      SceneLoader.ImportMeshAsync('', rootUrl, filename, scene, 
+        (evt) => {
+          // Add loading progress handling
+          if (evt.lengthComputable) {
+            const progress = (evt.loaded * 100 / evt.total).toFixed();
+            console.log(`Loading progress: ${progress}%`);
+          }
+        },
+        filename.endsWith('.splat') ? '.splat' : undefined
+      )
       .then(result => {
         if (result.meshes.length > 0) {
           const splat = result.meshes[0];
@@ -94,8 +115,11 @@
         }
       })
       .catch(error => {
-        console.error('Error loading model:', error);
+        console.error('Model loading error:', error);
       });
+    } catch (err) {
+      console.error('Error in loadModel:', err);
+    }
   }
 
   const handleResize = () => {
