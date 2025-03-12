@@ -261,18 +261,14 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
 
-            let content_type = if filename.ends_with(".splat") {
-                "application/octet-stream"
-            } else {
-                "model/mesh"
-            };
-
             Response::builder()
-                .header(header::CONTENT_TYPE, content_type)
+                .header(header::CONTENT_TYPE, "application/octet-stream")
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::ACCEPT_RANGES, "bytes")
-                .header(header::CACHE_CONTROL, "no-cache")
-                .header("Cross-Origin-Resource-Policy", "cross-origin") 
+                .header(header::CACHE_CONTROL, "no-cache, no-transform")
+                .header("Cross-Origin-Resource-Policy", "cross-origin")
+                .header("Content-Transfer-Encoding", "binary")
+                .header("X-Content-Type-Options", "nosniff")
                 .body(body)
                 .unwrap()
                 .into_response()
