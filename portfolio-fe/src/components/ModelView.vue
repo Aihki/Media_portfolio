@@ -31,7 +31,7 @@
     Vector3,
     SceneLoader,
     HemisphericLight,
-  } from '@babylonjs/core;
+  } from '@babylonjs/core';
 
   const props = defineProps<{
     model: string;
