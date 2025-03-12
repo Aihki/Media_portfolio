@@ -23,121 +23,99 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted } from 'vue';
-  import {
-    Engine,
-    Scene,
-    ArcRotateCamera,
-    Vector3,
-    HemisphericLight,
-    SceneLoader,
-  } from '@babylonjs/core';
-  import '@babylonjs/loaders';
+import { ref, onMounted, onUnmounted } from 'vue';
+import {
+  Engine,
+  Scene,
+  ArcRotateCamera,
+  Vector3,
+  HemisphericLight,
+  SceneLoader
+} from '@babylonjs/core';
+import '@babylonjs/loaders';
 
+const props = defineProps<{
+  model: string;
+  modelName: string;
+}>();
 
-  const props = defineProps<{
-    model: string;
-    modelName: string;
-  }>();
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
 
-  const emit = defineEmits<{
-    (e: 'close'): void;
-  }>();
+const canvasRef = ref<HTMLCanvasElement | null>(null);
+let engine: Engine | null = null;
+let scene: Scene | null = null;
 
-  const canvasRef = ref<HTMLCanvasElement | null>(null);
-  let engine: Engine | null = null;
-  let scene: Scene | null = null;
+onMounted(() => {
+  if (!canvasRef.value) return;
+  initScene();
+});
 
-  onMounted(() => {
-    if (!canvasRef.value) return;
+function initScene() {
+  if (!canvasRef.value) return;
 
-    initScene();
+  engine = new Engine(canvasRef.value, true);
+  scene = new Scene(engine);
+
+  const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
+  light.intensity = 1.0;
+
+  const camera = new ArcRotateCamera(
+    'camera',
+    Math.PI / 2,
+    Math.PI / 3,
+    15,
+    Vector3.Zero(),
+    scene
+  );
+  camera.attachControl(canvasRef.value, true);
+
+  loadModel();
+
+  engine.runRenderLoop(() => {
+    if (scene) {
+      scene.render();
+    }
   });
 
-  function initScene() {
-    if (!canvasRef.value) return;
-
-    engine = new Engine(canvasRef.value, true);
-    scene = new Scene(engine);
-
-    const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
-    light.intensity = 1.0;
-
-    const camera = new ArcRotateCamera(
-      'camera',
-      Math.PI / 2,
-      Math.PI / 3,
-      15,
-      Vector3.Zero(),
-      scene
-    );
-    camera.attachControl(canvasRef.value, true);
-
-    loadModel();
-
-    engine.runRenderLoop(() => {
-      if (scene) {
-        scene.render();
-      }
-    });
-
-    window.addEventListener('resize', handleResize);
-  }
-
-  function loadModel() {
-    if (!scene) return;
-
-    try {
-        const modelPath = props.model;
-        console.log('Loading model:', { modelPath, originalUrl: props.model });
-
-        if (modelPath.endsWith('.splat')) {
-            // Use proper splat loading format
-            SceneLoader.ImportMeshAsync("splat", "", modelPath, scene)
-                .then(result => {
-                    if (result.meshes.length > 0) {
-                        const splat = result.meshes[0];
-                        splat.position = Vector3.Zero();
-                        splat.scaling = new Vector3(5, 5, 5);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error loading splat:', err);
-                });
-        } else {
-            // Regular model loading
-            SceneLoader.ImportMeshAsync("", "", modelPath, scene)
-                .then(result => {
-                    if (result.meshes.length > 0) {
-                        const mesh = result.meshes[0];
-                        mesh.position = Vector3.Zero();
-                        mesh.scaling = new Vector3(5, 5, 5);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error loading model:', err);
-                });
-        }
-    } catch (err) {
-        console.error('Error in loadModel:', err);
-    }
+  window.addEventListener('resize', handleResize);
 }
 
-  const handleResize = () => {
-    if (engine) {
-      engine.resize();
-    }
-  };
+function loadModel() {
+  if (!scene) return;
 
-  const handleBackdropClick = (e: MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      emit('close');
-    }
-  };
+  const modelPath = props.model;
+  console.log('Loading model:', modelPath);
 
-  onUnmounted(() => {
-    window.removeEventListener('resize', handleResize);
-    scene?.dispose();
-    engine?.dispose();
-  });
+  SceneLoader.ImportMeshAsync(null, "", modelPath, scene)
+    .then((result) => {
+      if (result.meshes.length > 0) {
+        const splat = result.meshes[0];
+        splat.position = Vector3.Zero();
+        splat.scaling = new Vector3(5, 5, 5);
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to load model:", err);
+    });
+}
+
+const handleResize = () => {
+  if (engine) {
+    engine.resize();
+  }
+};
+
+const handleBackdropClick = (e: MouseEvent) => {
+  if (e.target === e.currentTarget) {
+    emit('close');
+  }
+};
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+  scene?.dispose();
+  engine?.dispose();
+});
 </script>
