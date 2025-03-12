@@ -108,9 +108,9 @@
     deletePhoto as deletePhotoAPI,
     type Photo,
   } from '../api';
-  import PhotoView from '../components/PhotoView.vue';  // Fix import path
+  import PhotoView from '../components/PhotoView.vue'; 
   import UploadForm from '../components/UploadForm.vue';
-  import { useAuthStore } from '../utils/AuthStore';  // Fix import path
+  import { useAuthStore } from '../utils/AuthStore'; 
   import CategoryFilter from '../components/CategoryFilter.vue';
   import FeedbackModal from '../components/FeedbackModal.vue';
 

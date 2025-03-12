@@ -89,76 +89,25 @@
       const modelUrl = new URL(props.model);
       const filename = modelUrl.pathname.split('/').pop() || '';
 
-      if (filename.endsWith('.splat')) {
-        fetch(props.model)
-          .then(response => response.arrayBuffer())
-          .then(buffer => {
-            const originalSize = buffer.byteLength;
-            const remainder = originalSize % 4;
-            const padding = remainder ? 4 - remainder : 0;
-            const alignedLength = originalSize + padding;
-            
-            // Create properly aligned buffer
-            const alignedBuffer = new ArrayBuffer(alignedLength);
-            const view = new Uint8Array(alignedBuffer);
-            
-            // Copy original data and ensure padding
-            view.set(new Uint8Array(buffer));
-            if (padding > 0) {
-              view.fill(0, originalSize, alignedLength);
-            }
-            
-            // Validate Float32Array alignment
-            try {
-              const float32View = new Float32Array(alignedBuffer);
-              if (float32View.length * 4 !== alignedLength) {
-                throw new Error('Buffer alignment validation failed');
-              }
-            } catch (e) {
-              console.error('Float32Array validation failed:', e);
-              throw new Error('Invalid splat file format');
-            }
-            
-            const blob = new Blob([alignedBuffer], { type: 'application/splat' });
-            const blobUrl = URL.createObjectURL(blob);
-            
-            return { blobUrl, scene };
-          })
-          .then(({ blobUrl, scene }) => {
-            return SceneLoader.ImportMeshAsync('', blobUrl, '', scene, undefined, '.splat')
-              .then(result => {
-                URL.revokeObjectURL(blobUrl);
-                return result;
-              })
-              .catch(error => {
-                URL.revokeObjectURL(blobUrl);
-                throw error;
-              });
-          })
-          .then(result => {
-            if (result.meshes.length > 0) {
-              const splat = result.meshes[0];
-              splat.position = Vector3.Zero();
-              splat.scaling = new Vector3(5, 5, 5);
-            }
-          })
-          .catch(error => {
-            console.error('Model loading error:', error);
-          });
-      } else {
-        // Regular model loading for non-splat files
-        SceneLoader.ImportMeshAsync('', props.model, '', scene)
-          .then(result => {
-            if (result.meshes.length > 0) {
-              const mesh = result.meshes[0];
-              mesh.position = Vector3.Zero();
-              mesh.scaling = new Vector3(5, 5, 5);
-            }
-          })
-          .catch(error => {
-            console.error('Model loading error:', error);
-          });
-      }
+      console.log('Loading model:', {
+        filename,
+        fullUrl: props.model
+      });
+
+
+      const modelPath = `/api/models/file/${filename}`;
+
+      SceneLoader.ImportMeshAsync('', '', modelPath, scene, undefined, '.splat')
+        .then(result => {
+          if (result.meshes.length > 0) {
+            const splat = result.meshes[0];
+            splat.position = Vector3.Zero();
+            splat.scaling = new Vector3(5, 5, 5);
+          }
+        })
+        .catch(error => {
+          console.error('Model loading error:', error);
+        });
     } catch (err) {
       console.error('Error in loadModel:', err);
     }
