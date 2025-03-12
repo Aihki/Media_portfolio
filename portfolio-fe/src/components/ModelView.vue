@@ -86,34 +86,72 @@
     if (!scene) return;
 
     try {
-      const modelUrl = props.model.startsWith('http') ? new URL(props.model) : new URL(props.model, window.location.origin);
-      const filename = modelUrl.pathname.split('/').pop() || '';
+      const filename = props.model.split('/').pop() || '';
+      // Use static path directly
+      const modelPath = `/static/models/${filename}`;
 
       console.log('Loading model:', {
         filename,
-        modelUrl: modelUrl.toString(),
+        modelPath,
         originalUrl: props.model
       });
 
-      // Use the full static path
-      SceneLoader.ImportMeshAsync(
-        '',
-        '',
-        modelUrl.toString(),
-        scene,
-        undefined,
-        filename.endsWith('.splat') ? '.splat' : undefined
-      )
-      .then(result => {
-        if (result.meshes.length > 0) {
-          const mesh = result.meshes[0];
-          mesh.position = Vector3.Zero();
-          mesh.scaling = new Vector3(5, 5, 5);
-        }
-      })
-      .catch(error => {
-        console.error('Model loading error:', error);
-      });
+      if (filename.endsWith('.splat')) {
+        // Handle .splat files
+        fetch(modelPath)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.arrayBuffer();
+          })
+          .then(buffer => {
+            // Ensure proper alignment for Float32Array
+            const pointCount = Math.floor(buffer.byteLength / 24); // 6 floats per point
+            const alignedLength = pointCount * 24;
+            
+            const alignedBuffer = new ArrayBuffer(alignedLength);
+            const view = new Uint8Array(alignedBuffer);
+            view.set(new Uint8Array(buffer.slice(0, alignedLength)));
+
+            // Create blob with aligned data
+            const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
+              .then(result => {
+                URL.revokeObjectURL(blobUrl);
+                return result;
+              })
+              .catch(error => {
+                URL.revokeObjectURL(blobUrl);
+                throw error;
+              });
+          })
+          .then(result => {
+            if (result.meshes.length > 0) {
+              const splat = result.meshes[0];
+              splat.position = Vector3.Zero();
+              splat.scaling = new Vector3(5, 5, 5);
+            }
+          })
+          .catch(error => {
+            console.error('Model loading error:', error);
+          });
+      } else {
+        // Handle regular models
+        SceneLoader.ImportMeshAsync('', '', modelPath, scene)
+          .then(result => {
+            if (result.meshes.length > 0) {
+              const mesh = result.meshes[0];
+              mesh.position = Vector3.Zero();
+              mesh.scaling = new Vector3(5, 5, 5);
+            }
+          })
+          .catch(error => {
+            console.error('Model loading error:', error);
+          });
+      }
     } catch (err) {
       console.error('Error in loadModel:', err);
     }
