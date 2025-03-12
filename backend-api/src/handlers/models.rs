@@ -133,7 +133,7 @@ pub async fn upload_model(
 /// # Returns
 /// Returns a list of model URLs
 pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
-    if !PathBuf::from(MODEL_FOLDER).exists() {  // Fixed unnecessary parentheses
+    if !PathBuf::from(MODEL_FOLDER).exists() {
         fs::create_dir_all(MODEL_FOLDER)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
@@ -143,7 +143,9 @@ pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
             let models = paths
                 .filter_map(|entry| {
                     entry.ok().and_then(|e| {
-                        if e.path().is_file() {
+                        // Only include .splat files
+                        if e.path().is_file() && 
+                           e.path().extension().map_or(false, |ext| ext == "splat") {
                             Some(format!("/static/models/{}", 
                                 e.file_name().to_string_lossy()))
                         } else {
@@ -244,10 +246,10 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
                 .header(header::CONTENT_TYPE, "application/octet-stream")
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::ACCEPT_RANGES, "bytes")
-                .header(header::CACHE_CONTROL, "no-transform")
+                .header(header::CACHE_CONTROL, "no-cache")
+                .header(header::PRAGMA, "no-cache")
                 .header("Content-Transfer-Encoding", "binary")
                 .header("Cross-Origin-Resource-Policy", "cross-origin")
-                .header("X-Content-Type-Options", "nosniff")
                 .body(body)
                 .unwrap()
                 .into_response()

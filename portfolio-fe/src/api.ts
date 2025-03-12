@@ -169,16 +169,14 @@ export async function uploadModel(data: {
 
 export async function listModels(): Promise<string[]> {
   try {
-    console.log('Fetching models from:', `${API_URL}/api/models`);
     const response = await axios.get(`${API_URL}/api/models`);
-    console.log('Models response:', response.data);
-    return response.data.map((path: string) => `${API_URL}${path}`);
+    // Ensure URLs have server origin
+    return response.data.map((path: string) => {
+      if (path.startsWith('http')) return path;
+      return `${API_URL}${path}`;
+    });
   } catch (error) {
     console.error('Error fetching models:', error);
-    if (axios.isAxiosError(error)) {
-      console.error('Response:', error.response?.data);
-      console.error('Status:', error.response?.status);
-    }
     return [];
   }
 }
@@ -330,17 +328,12 @@ export type Model = {
 };
 
 export async function getModelsWithDetails(): Promise<Model[]> {
-  console.log('🔍 Fetching models with details...');
   const response = await axios.get(`${API_URL}/api/models/details`);
-  console.log('📦 Received models:', response.data);
   
-  const modelsWithFullUrls = response.data.map((model: Model) => ({
+  return response.data.map((model: Model) => ({
     ...model,
-    url: `${API_URL}${model.url}`
+    url: model.url.startsWith('http') ? model.url : `${API_URL}${model.url}`
   }));
-  
-  console.log('🎮 Models with full URLs:', modelsWithFullUrls);
-  return modelsWithFullUrls;
 }
 
 export async function getVideosWithDetails(): Promise<Video[]> {
