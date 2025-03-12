@@ -30,7 +30,9 @@
     ArcRotateCamera,
     Vector3,
     HemisphericLight,
+    SceneLoader,
   } from '@babylonjs/core';
+  import '@babylonjs/loaders';
   import { getFileUrl } from '../api';
 
   const props = defineProps<{
@@ -86,11 +88,10 @@
     if (!scene) return;
 
     try {
-        const filename = props.model.split('/').pop() || '';
-        const modelPath = getFileUrl(`models/${filename}`);
+        // Use the model path directly as it comes from API
+        const modelPath = props.model;
 
         console.log('Loading model:', {
-            filename,
             modelPath,
             originalUrl: props.model
         });
@@ -101,7 +102,14 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return response.arrayBuffer();
                 })
-                // ...rest of the fetch handling...
+                .then(data => {
+                    SceneLoader.LoadData('', data, scene, () => {
+                        console.log('Model loaded:', modelPath);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error loading model:', err);
+                });
         }
     } catch (err) {
         console.error('Error in loadModel:', err);

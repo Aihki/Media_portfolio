@@ -61,7 +61,7 @@ pub async fn upload_model(
 
                 // Generate unique filename
                 let ext = Path::new(&orig_name).extension().unwrap_or_default();
-                let unique_name = format!("model_{}_{}_{}", 
+                let unique_name = format!("model_{}_{}.{}", 
                     Uuid::new_v4(),
                     chrono::Local::now().format("%Y%m%d"),
                     ext.to_str().unwrap_or("splat")
