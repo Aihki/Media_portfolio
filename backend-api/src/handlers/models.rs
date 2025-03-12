@@ -248,26 +248,23 @@ pub async fn delete_model(
 }
 
 pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
-    let path = PathBuf::from(MODEL_FOLDER).join(&filename);  
+    let path = PathBuf::from(MODEL_FOLDER).join(&filename);
     
     match File::open(&path).await {
         Ok(file) => {
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
-            
-            let content_type = if filename.ends_with(".splat") { 
-                "application/splat"
-            } else {
-                "application/octet-stream"
-            };
-            
-            Response::builder()
-                .header(header::CONTENT_TYPE, content_type)
+
+            let response = Response::builder()
+                .header(header::CONTENT_TYPE, "application/octet-stream")
                 .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", filename))
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                .header(header::ACCEPT_RANGES, "bytes")
+                .header(header::CACHE_CONTROL, "no-cache")
                 .body(body)
-                .unwrap()
-                .into_response()
+                .unwrap();
+
+            response.into_response()
         }
         Err(_) => StatusCode::NOT_FOUND.into_response()
     }
