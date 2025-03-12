@@ -270,21 +270,36 @@
 
   function loadModel(url: string, scene: Scene) {
     try {
-      SceneLoader.ImportMeshAsync('', url, '', scene)
-        .then(result => {
-          if (result.meshes.length > 0) {
-            const splat = result.meshes[0];
-            splat.name = 'standardMesh';
-            splat.position = Vector3.Zero();
-            splat.scaling = new Vector3(5, 5, 5);
-          }
-        })
-        .catch(error => {
-          console.error('Error loading model:', error);
-          if (error.value !== null) {
-            error.value = `Failed to load model: ${url.split('/').pop()}`;
-          }
-        });
+      const filename = url.split('/').pop() || '';
+      const modelPath = `/api/models/file/${filename}`;
+
+      console.log('Loading model:', {
+        filename,
+        modelPath,
+        originalUrl: url
+      });
+
+      SceneLoader.ImportMeshAsync(
+        '',
+        '',
+        modelPath,
+        scene,
+        undefined,
+        filename.endsWith('.splat') ? '.splat' : undefined
+      )
+      .then(result => {
+        if (result.meshes.length > 0) {
+          const mesh = result.meshes[0];
+          mesh.position = Vector3.Zero();
+          mesh.scaling = new Vector3(5, 5, 5);
+        }
+      })
+      .catch(error => {
+        console.error('Error loading model:', error);
+        if (error.value !== null) {
+          error.value = `Failed to load model: ${filename}`;
+        }
+      });
     } catch (err) {
       console.error('Error in loadModel:', err);
       if (error.value !== null) {

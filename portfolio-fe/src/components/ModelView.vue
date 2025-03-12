@@ -86,65 +86,33 @@
     if (!scene) return;
 
     try {
-      const modelUrl = new URL(props.model);
-      const filename = modelUrl.pathname.split('/').pop() || '';
+      const filename = props.model.split('/').pop() || '';
+      const modelPath = `/api/models/file/${filename}`;
 
       console.log('Loading model:', {
         filename,
-        fullUrl: props.model
+        modelPath,
+        originalUrl: props.model
       });
 
-      const modelPath = `/api/models/file/${filename}`;
-
-      if (filename.endsWith('.splat')) {
-        fetch(modelPath)
-          .then(response => response.arrayBuffer())
-          .then(buffer => {
-            // Ensure the buffer length is a multiple of 24 (6 float32 values per point)
-            const pointCount = Math.floor(buffer.byteLength / 24);
-            const alignedLength = pointCount * 24;
-            
-            // Create aligned buffer
-            const alignedBuffer = new ArrayBuffer(alignedLength);
-            const view = new Uint8Array(alignedBuffer);
-            view.set(new Uint8Array(buffer.slice(0, alignedLength)));
-
-            const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
-            const blobUrl = URL.createObjectURL(blob);
-
-            return SceneLoader.ImportMeshAsync('', '', blobUrl, scene, undefined, '.splat')
-              .then(result => {
-                URL.revokeObjectURL(blobUrl);
-                return result;
-              })
-              .catch(error => {
-                URL.revokeObjectURL(blobUrl);
-                throw error;
-              });
-          })
-          .then(result => {
-            if (result.meshes.length > 0) {
-              const splat = result.meshes[0];
-              splat.position = Vector3.Zero();
-              splat.scaling = new Vector3(5, 5, 5);
-            }
-          })
-          .catch(error => {
-            console.error('Model loading error:', error);
-          });
-      } else {
-        SceneLoader.ImportMeshAsync('', '', modelPath, scene)
-          .then(result => {
-            if (result.meshes.length > 0) {
-              const mesh = result.meshes[0];
-              mesh.position = Vector3.Zero();
-              mesh.scaling = new Vector3(5, 5, 5);
-            }
-          })
-          .catch(error => {
-            console.error('Model loading error:', error);
-          });
-      }
+      SceneLoader.ImportMeshAsync(
+        '',
+        '',
+        modelPath,
+        scene,
+        undefined,
+        filename.endsWith('.splat') ? '.splat' : undefined
+      )
+      .then(result => {
+        if (result.meshes.length > 0) {
+          const mesh = result.meshes[0];
+          mesh.position = Vector3.Zero();
+          mesh.scaling = new Vector3(5, 5, 5);
+        }
+      })
+      .catch(error => {
+        console.error('Model loading error:', error);
+      });
     } catch (err) {
       console.error('Error in loadModel:', err);
     }
