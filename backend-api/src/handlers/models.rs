@@ -39,38 +39,44 @@ pub async fn upload_model(
     State(db): State<Arc<Database>>,
     mut multipart: Multipart
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    let mut filename = String::new();
     let mut name = String::new();
-    let mut category_id = String::new();
-    let mut saved_filename = String::new();
+    let mut category = String::new();
 
-    while let Some(mut field) = multipart.next_field().await.map_err(|e| { 
-        eprintln!("Error getting next field: {}", e);
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        eprintln!("Error processing multipart form: {}", e);
         StatusCode::BAD_REQUEST
     })? {
-        match field.name() {
-            Some("name") => {
-                name = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-            },
-            Some("category") => {
-                category_id = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-            },
-            Some("file") => {
-                let filename = field.file_name()
-                    .map(|f| f.to_string())
-                    .unwrap_or_else(|| format!("{}.splat", Uuid::new_v4()));
-                
-                println!("📦 Model upload started: {}", filename);
-                
-                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
-                
-                if !PathBuf::from(MODEL_FOLDER).exists() {
+        let field_name = field.name().unwrap_or("").to_string();
+        println!("Processing field: {:?}", field_name);
+
+        match field_name.as_str() {
+            "file" => {
+                // Get original filename
+                let orig_name = field.file_name().unwrap_or("").to_string();
+                if !orig_name.ends_with(".splat") {
+                    eprintln!("Invalid file type: {}", orig_name);
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+
+                // Generate unique filename
+                let ext = Path::new(&orig_name).extension().unwrap_or_default();
+                let unique_name = format!("model_{}_{}_{}", 
+                    Uuid::new_v4(),
+                    chrono::Local::now().format("%Y%m%d"),
+                    ext.to_str().unwrap_or("splat")
+                );
+                filename = unique_name.clone();
+
+                // Ensure models directory exists
+                if !Path::new(MODEL_FOLDER).exists() {
                     fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
                         eprintln!("Failed to create directory: {}", e);
                         StatusCode::INTERNAL_SERVER_ERROR
                     })?;
                 }
 
-                // Collect all data chunks
+                // Collect and process file data
                 let mut data = Vec::new();
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
@@ -85,39 +91,47 @@ pub async fn upload_model(
                     data.extend(vec![0u8; padding]);
                 }
 
-                println!("📊 Model size: {} bytes (padded to {})", data.len() - padding, data.len());
-
-                // Write aligned data
+                // Write aligned data to file
+                let filepath = format!("{}/{}", MODEL_FOLDER, unique_name);
+                println!("📦 Saving model to: {}", filepath);
                 fs::write(&filepath, &data).map_err(|e| {
-                    eprintln!("Failed to write file: {}", e);
+                    eprintln!("Failed to save file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
-
-                saved_filename = filename;
-                println!("✅ Model saved: {}", saved_filename);
+            },
+            "name" => {
+                name = field.text().await.map_err(|e| {
+                    eprintln!("Error reading name: {}", e);
+                    StatusCode::BAD_REQUEST
+                })?;
+            },
+            "category" => {
+                category = field.text().await.map_err(|e| {
+                    eprintln!("Error reading category: {}", e);
+                    StatusCode::BAD_REQUEST
+                })?;
             },
             _ => {}
         }
     }
 
-
-    if name.is_empty() || category_id.is_empty() || saved_filename.is_empty() {
+    // Save model metadata to database
+    if name.is_empty() || category.is_empty() || filename.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let category_object_id = mongodb::bson::oid::ObjectId::parse_str(&category_id)
+    let category_object_id = mongodb::bson::oid::ObjectId::parse_str(&category)
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-
-    let model = Model::new(name, saved_filename.clone(), category_object_id);
+    let model = Model::new(name, filename.clone(), category_object_id);
     
     match db.collection::<Model>("models")
         .insert_one(model, None)
         .await {
         Ok(_) => {
             let response = json!({
-                "url": format!("/static/models/{}", saved_filename),
-                "filename": saved_filename,
+                "url": format!("/static/models/{}", filename),
+                "filename": filename,
                 "success": true
             });
             Ok(Json(response))
@@ -241,8 +255,16 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
             
+            let content_type = if filename.ends_with(".splat") {
+                "application/splat"
+            } else {
+                "application/octet-stream"
+            };
+            
             Response::builder()
-                .header(header::CONTENT_TYPE, "application/octet-stream")
+                .header(header::CONTENT_TYPE, content_type)
+                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", filename))
+                .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .body(body)
                 .unwrap()
                 .into_response()

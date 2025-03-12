@@ -69,7 +69,7 @@
   import { ref, onMounted, onUnmounted, computed } from 'vue';
   import * as BABYLON from '@babylonjs/core';
   import '@babylonjs/loaders';
-  import { getModelsWithDetails, type Model } from '../api';  // Fix import path
+  import { getModelsWithDetails, type Model } from '../api';
 
   const canvas = ref<HTMLCanvasElement | null>(null);
   const engine = ref<BABYLON.Engine | null>(null);
@@ -126,11 +126,24 @@
     }
 
     try {
+      // Get the base URL and filename
+      const modelUrl = new URL(model.url);
+      const filename = modelUrl.pathname.split('/').pop() || '';
+      const rootUrl = `${modelUrl.origin}/static/models/`;
+
+      console.log('Loading model:', {
+        rootUrl,
+        filename,
+        fullUrl: model.url
+      });
+
       const result = await BABYLON.SceneLoader.ImportMeshAsync(
         '',
-        'http://localhost:3000/static/models/',
-        model.filename,
-        currentScene
+        rootUrl,
+        filename,
+        currentScene,
+        undefined,
+        filename.endsWith('.splat') ? '.splat' : undefined
       );
 
       if (result.meshes.length > 0) {
