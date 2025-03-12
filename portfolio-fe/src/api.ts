@@ -54,17 +54,8 @@ export async function uploadPhoto(data: {
   name: string; 
   categoryId: string;
 }): Promise<any> {
-  if (!data) {
-    throw new Error('No upload data provided');
-  }
-  if (!data.file) {
-    throw new Error('No file provided');
-  }
-  if (!data.name) {
-    throw new Error('No name provided');
-  }
-  if (!data.categoryId) {
-    throw new Error('No category provided');
+  if (!data?.file || !data?.name || !data?.categoryId) {
+    throw new Error('Missing required upload data');
   }
 
   const formData = new FormData();
@@ -72,33 +63,45 @@ export async function uploadPhoto(data: {
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
-
-  console.log('Sending FormData:', {
-    file: data.file.name,
-    name: data.name,
-    category: data.categoryId
-  });
-
-  const response = await fetch(`${API_URL}/upload/photo`, {
-    method: 'POST',
-    body: formData,
-  });
-
   try {
+    const response = await fetch(`${API_URL}/upload/photo`, {
+      method: 'POST',
+      body: formData,
+    });
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Upload failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-      });
-      throw new Error(errorText || response.statusText);
+      let errorMessage = `Upload failed with status ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (parseError) {
+        // If response is not JSON, try to get text
+        try {
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        } catch {
+          // Fallback to status text if text() also fails
+          errorMessage = response.statusText || errorMessage;
+        }
+      }
+      throw new Error(errorMessage);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Invalid response format from server');
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Upload error:', error);
-    throw new Error('Failed to upload photo');
+    console.error('Upload error details:', {
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: error instanceof Response ? error.status : 'N/A'
+    });
+    throw error instanceof Error ? error : new Error('Failed to upload photo');
   }
 }
 

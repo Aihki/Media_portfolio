@@ -147,12 +147,8 @@
     categoryId: { $oid: string } | string;
   }) => {
     try {
-      console.log('Photos component received:', {
-        hasFile: !!uploadData.file,
-        fileName: uploadData.file?.name,
-        name: uploadData.name,
-        categoryId: uploadData.categoryId,
-      });
+      loading.value = true;
+      error.value = null;
 
       const data = {
         file: uploadData.file,
@@ -164,15 +160,17 @@
             : uploadData.categoryId,
       };
 
-      await uploadPhotoAPI(data);
-      await fetchPhotos();
-    } catch (err) {
-      console.error('Upload error:', err);
-      if (err instanceof Error) {
-        error.value = err.message;
+      const result = await uploadPhotoAPI(data);
+      if (result?.url) {
+        await fetchPhotos();
       } else {
-        error.value = 'Failed to upload photo';
+        throw new Error('Invalid response from server');
       }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      error.value = err instanceof Error ? err.message : 'Failed to upload photo';
+    } finally {
+      loading.value = false;
     }
   };
 

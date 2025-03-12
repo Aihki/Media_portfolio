@@ -11,7 +11,7 @@ use axum::{
     extract::{Multipart, Path as AxumPath, State},
     Json,
     response::{IntoResponse, Response},
-    http::{StatusCode, header},
+    http::{StatusCode, header, HeaderMap},  // Add HeaderMap import
     body::StreamBody,
 };
 use std::{fs, path::{PathBuf, Path}, sync::Arc};
@@ -40,7 +40,7 @@ pub const PHOTO_FOLDER: &str = "static/photos";
 pub async fn upload_photo(
     State(db): State<Arc<Database>>,
     mut multipart: Multipart
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<(HeaderMap, Json<serde_json::Value>), StatusCode> {  // Modified return type
     let mut name = String::new();
     let mut category_id = String::new();
     let mut saved_filename = String::new();
@@ -153,10 +153,17 @@ pub async fn upload_photo(
         .await {
         Ok(_) => {
             let url = format!("/static/photos/{}", saved_filename);
-            Ok(Json(json!({
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                "application/json".parse().unwrap()
+            );
+            
+            Ok((headers, Json(json!({
                 "url": url,
-                "filename": saved_filename
-            })))
+                "filename": saved_filename,
+                "success": true
+            }))))
         },
         Err(e) => {
             eprintln!("Failed to save photo to database: {}", e);

@@ -18,7 +18,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     }
   },
-  server: {
+/*   server: {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Content-Type': 'application/javascript',
@@ -26,7 +26,7 @@ export default defineConfig({
     fs: {
       strict: false
     }
-  },
+  }, */
   build: {
     rollupOptions: {
       output: {
