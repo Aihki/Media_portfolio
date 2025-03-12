@@ -33,7 +33,7 @@
     SceneLoader,
   } from '@babylonjs/core';
   import '@babylonjs/loaders';
-  import { getFileUrl } from '../api';
+
 
   const props = defineProps<{
     model: string;
@@ -88,7 +88,6 @@
     if (!scene) return;
 
     try {
-        // Use the model path directly as it comes from API
         const modelPath = props.model;
 
         console.log('Loading model:', {
@@ -102,10 +101,24 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return response.arrayBuffer();
                 })
-                .then(data => {
-                    SceneLoader.LoadData('', data, scene, () => {
-                        console.log('Model loaded:', modelPath);
-                    });
+                .then(buffer => {
+                    // Create blob with aligned data
+                    const blob = new Blob([buffer], { type: 'application/octet-stream' });
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
+                        .then(result => {
+                            URL.revokeObjectURL(blobUrl);
+                            if (result.meshes.length > 0) {
+                                const splat = result.meshes[0];
+                                splat.position = Vector3.Zero();
+                                splat.scaling = new Vector3(5, 5, 5);
+                            }
+                        })
+                        .catch(error => {
+                            URL.revokeObjectURL(blobUrl);
+                            throw error;
+                        });
                 })
                 .catch(err => {
                     console.error('Error loading model:', err);
