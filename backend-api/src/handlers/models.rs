@@ -104,11 +104,12 @@ pub async fn upload_model(
         .insert_one(model, None)
         .await {
         Ok(_) => {
-            let url = format!("/static/models/{}", saved_filename);
-            Ok(Json(json!({
-                "url": url,
-                "filename": saved_filename
-            })))
+            let response = json!({
+                "url": format!("/static/models/{}", saved_filename),
+                "filename": saved_filename,
+                "success": true
+            });
+            Ok(Json(response))
         },
         Err(e) => {
             eprintln!("Failed to save model to database: {}", e);

@@ -152,11 +152,12 @@ pub async fn upload_photo(
         .insert_one(photo, None)
         .await {
         Ok(_) => {
-            let url = format!("/static/photos/{}", saved_filename);
-            Ok(Json(json!({
-                "url": url,
-                "filename": saved_filename
-            })))
+            let response = json!({
+                "url": format!("/static/photos/{}", saved_filename),
+                "filename": saved_filename,
+                "success": true
+            });
+            Ok(Json(response))
         },
         Err(e) => {
             eprintln!("Failed to save photo to database: {}", e);

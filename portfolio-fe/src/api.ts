@@ -54,17 +54,8 @@ export async function uploadPhoto(data: {
   name: string; 
   categoryId: string;
 }): Promise<any> {
-  if (!data) {
-    throw new Error('No upload data provided');
-  }
-  if (!data.file) {
-    throw new Error('No file provided');
-  }
-  if (!data.name) {
-    throw new Error('No name provided');
-  }
-  if (!data.categoryId) {
-    throw new Error('No category provided');
+  if (!data?.file || !data?.name || !data?.categoryId) {
+    throw new Error('Missing required upload data');
   }
 
   const formData = new FormData();
@@ -72,34 +63,30 @@ export async function uploadPhoto(data: {
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
-
-  console.log('Sending FormData:', {
+  console.log('Sending photo data:', {
     file: data.file.name,
     name: data.name,
     category: data.categoryId
   });
 
-  const response = await fetch(`${API_URL}/upload/photo`, {
-    method: 'POST',
-    body: formData,
+  const response = await axios.post(`${API_URL}/api/upload-photo`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Accept: 'application/json',
+    },
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
   });
 
-  try {
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Upload failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-      });
-      throw new Error(errorText || response.statusText);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Upload error:', error);
-    throw new Error('Failed to upload photo');
+  if (!response.data) {
+    throw new Error('No response from server');
   }
+
+  if (response.data.error) {
+    throw new Error(response.data.error);
+  }
+
+  return response.data;
 }
 
 export async function listPhotos(): Promise<string[]> {
@@ -118,7 +105,6 @@ export async function uploadModel(data: {
   categoryId: string;
 }): Promise<any> {
   if (!data?.file || !data?.name || !data?.categoryId) {
-    console.error('Missing upload data:', data);
     throw new Error('Missing required upload data');
   }
 
@@ -127,17 +113,24 @@ export async function uploadModel(data: {
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
-  console.log('Sending model data:', {
-    file: data.file.name,
-    name: data.name,
-    category: data.categoryId
+  const response = await axios.post(`${API_URL}/api/upload-model`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Accept: 'application/json',
+    },
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
   });
 
-  const response = await axios.post(`${API_URL}/upload/model`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  if (!response.data) {
+    throw new Error('No response from server');
+  }
 
-  return `${API_URL}${response.data.url}`;
+  if (response.data.error) {
+    throw new Error(response.data.error);
+  }
+
+  return response.data;
 }
 
 export async function listModels(): Promise<string[]> {
