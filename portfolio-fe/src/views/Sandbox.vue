@@ -126,39 +126,17 @@
     }
 
     try {
-      if (model.url.endsWith('.splat')) {
-        const response = await fetch(model.url);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const buffer = await response.arrayBuffer();
+      const result = await BABYLON.SceneLoader.ImportMeshAsync(
+        "",
+        "",
+        model.url,
+        currentScene
+      );
 
-
-        const pointBytes = 24;
-        const points = Math.floor(buffer.byteLength / pointBytes);
-        const alignedLength = points * pointBytes;
-
-        const alignedBuffer = new ArrayBuffer(alignedLength);
-        new Uint8Array(alignedBuffer).set(new Uint8Array(buffer.slice(0, alignedLength)));
-
-        const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
-        const blobUrl = URL.createObjectURL(blob);
-
-        try {
-          const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', blobUrl, currentScene);
-          if (result.meshes.length > 0) {
-            currentMesh = result.meshes[0];
-            currentMesh.position = new BABYLON.Vector3(0, 0.5, 0);
-            currentMesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-          }
-        } finally {
-          URL.revokeObjectURL(blobUrl);
-        }
-      } else {
-        const result = await BABYLON.SceneLoader.ImportMeshAsync('', '', model.url, currentScene);
-        if (result.meshes.length > 0) {
-          currentMesh = result.meshes[0];
-          currentMesh.position = new BABYLON.Vector3(0, 0.5, 0);
-          currentMesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-        }
+      if (result.meshes.length > 0) {
+        currentMesh = result.meshes[0];
+        currentMesh.position = new BABYLON.Vector3(0, 0.5, 0);
+        currentMesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
       }
 
       if (isRotating.value) {

@@ -269,53 +269,21 @@
   });
 
   function loadModel(url: string, scene: Scene) {
-    try {
-        console.log('Loading model:', { modelPath: url, originalUrl: url });
+    console.log('Loading model:', { modelPath: url });
 
-        if (url.endsWith('.splat')) {
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.arrayBuffer();
-                })
-                .then(buffer => {
-                    const pointBytes = 24;
-                    const points = Math.floor(buffer.byteLength / pointBytes);
-                    const alignedLength = points * pointBytes;
-
-                    const alignedBuffer = new ArrayBuffer(alignedLength);
-                    new Uint8Array(alignedBuffer).set(new Uint8Array(buffer.slice(0, alignedLength)));
-
-                    const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
-                    const blobUrl = URL.createObjectURL(blob);
-
-                    return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
-                        .then(result => {
-                            URL.revokeObjectURL(blobUrl);
-                            if (result.meshes.length > 0) {
-                                const mesh = result.meshes[0];
-                                mesh.position = Vector3.Zero();
-                                mesh.scaling = new Vector3(5, 5, 5);
-                            }
-                        })
-                        .catch(error => {
-                            URL.revokeObjectURL(blobUrl);
-                            throw error;
-                        });
-                });
-        } else {
-            SceneLoader.ImportMeshAsync('', '', url, scene)
-                .then(result => {
-                    if (result.meshes.length > 0) {
-                        const mesh = result.meshes[0];
-                        mesh.position = Vector3.Zero();
-                        mesh.scaling = new Vector3(5, 5, 5);
-                    }
-                });
+    SceneLoader.ImportMesh(
+      "",
+      "",
+      url,
+      scene,
+      function(meshes) {
+        if (meshes.length > 0) {
+          const mesh = meshes[0];
+          mesh.position = Vector3.Zero();
+          mesh.scaling = new Vector3(5, 5, 5);
         }
-    } catch (err) {
-        console.error('Error in loadModel:', err);
-    }
+      }
+    );
   }
 
   const openModel = (model: Model) => {

@@ -84,21 +84,21 @@ function initScene() {
 
 function loadModel() {
   if (!scene) return;
+  console.log('Loading model:', props.model);
 
-  const modelPath = props.model;
-  console.log('Loading model:', modelPath);
-
-  SceneLoader.ImportMeshAsync(null, "", modelPath, scene)
-    .then((result) => {
-      if (result.meshes.length > 0) {
-        const splat = result.meshes[0];
-        splat.position = Vector3.Zero();
-        splat.scaling = new Vector3(5, 5, 5);
+  SceneLoader.ImportMesh(
+    "",
+    "",
+    props.model,
+    scene,
+    function(meshes) {
+      if (meshes.length > 0) {
+        const mesh = meshes[0];
+        mesh.position = Vector3.Zero();
+        mesh.scaling = new Vector3(5, 5, 5);
       }
-    })
-    .catch((err) => {
-      console.error("Failed to load model:", err);
-    });
+    }
+  );
 }
 
 const handleResize = () => {
