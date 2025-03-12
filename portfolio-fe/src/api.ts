@@ -108,33 +108,33 @@ export async function uploadModel(data: {
     throw new Error('Missing required upload data');
   }
 
-  // Create blob with correct size alignment
-  const arrayBuffer = await data.file.arrayBuffer();
-  const remainder = arrayBuffer.byteLength % 4;
-  let alignedBuffer = arrayBuffer;
-  
-  if (remainder !== 0) {
-    const padding = 4 - remainder;
-    alignedBuffer = new ArrayBuffer(arrayBuffer.byteLength + padding);
-    new Uint8Array(alignedBuffer).set(new Uint8Array(arrayBuffer));
-  }
 
-  const alignedBlob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
+  const buffer = await data.file.arrayBuffer();
   
+
+  const paddedSize = Math.ceil(buffer.byteLength / 4) * 4;
+  const alignedBuffer = new ArrayBuffer(paddedSize);
+  new Uint8Array(alignedBuffer).set(new Uint8Array(buffer));
+
+  const blob = new Blob([alignedBuffer], { 
+    type: 'application/octet-stream' 
+  });
+
   const formData = new FormData();
-  formData.append('file', alignedBlob, data.file.name);
+  formData.append('file', new File([blob], data.file.name, {
+    type: 'application/octet-stream'
+  }));
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
-  console.log('Uploading model:', {
-    originalSize: data.file.size,
+  console.log('📦 Uploading model:', {
+    originalSize: buffer.byteLength,
     alignedSize: alignedBuffer.byteLength,
-    name: data.name,
+    name: data.name
   });
 
   const response = await axios.post(`${API_URL}/api/upload-model`, formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
       Accept: 'application/json',
     },
     maxContentLength: Infinity,

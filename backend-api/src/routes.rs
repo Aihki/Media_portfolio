@@ -17,11 +17,11 @@ use tower_http::{
     services::ServeDir,
     cors::CorsLayer,
 };
+use http::{HeaderValue, Method};
 use crate::handlers::{photos, models, videos, categories, stats};
 use std::sync::Arc;
 use mongodb::Database;
 use crate::handlers::auth::login_handler;
-use http::{HeaderValue, Method};  
 
 /// Creates the router with all API routes
 /// 
@@ -36,7 +36,11 @@ pub fn create_routes(db: Arc<Database>) -> Router {
     let cors = CorsLayer::new()
         .allow_origin("*".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::DELETE])
-        .allow_headers([header::CONTENT_TYPE]);
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::ACCEPT,
+            header::AUTHORIZATION,
+        ]);
 
     Router::new()
         .route("/api/upload-photo", post(photos::upload_photo))
@@ -56,12 +60,8 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/models/:id", delete(models::delete_model))
         .route("/api/photos/:id", delete(photos::delete_photo))
         .route("/api/videos/:id", delete(videos::delete_video))
+        .route("/static/models/:filename", get(models::get_file)) 
         .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
-        .nest_service("/static/models", 
-            ServeDir::new(models::MODEL_FOLDER)
-                .precompressed_br()
-                .precompressed_gzip()
-        )
         .nest_service("/static/videos", ServeDir::new(videos::VIDEO_FOLDER))
         .layer(cors)
         .layer(DefaultBodyLimit::max(1024 * 1024 * 500))

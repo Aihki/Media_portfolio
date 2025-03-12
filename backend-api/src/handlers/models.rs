@@ -9,20 +9,20 @@
 use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
-    http::StatusCode
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    body::StreamBody,
+    http::header,
 };
 use std::{fs, path::PathBuf, sync::Arc};
 use mongodb::Database;
 use crate::models::{Model, ModelResponse, Category};  
 use serde_json::json;
-use std::io::Write;
 use uuid::Uuid;
 use futures_util::StreamExt;
-use mongodb::bson::oid::ObjectId;
-use mongodb::bson::doc;
+use mongodb::bson::{oid::ObjectId, doc};
 use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
-use bytes::Bytes;
+use tokio_util::io::ReaderStream;
 
 /// Directory where 3D models are stored
 pub const MODEL_FOLDER: &str = "static/models";
@@ -59,34 +59,42 @@ pub async fn upload_model(
                     .map(|f| f.to_string())
                     .unwrap_or_else(|| format!("{}.splat", Uuid::new_v4()));
                 
-                println!("📦 Uploading model: {}", filename);
+                println!("📦 Model upload started: {}", filename);
                 
-                let mut all_data = Vec::new();
+                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
                 
+                if !PathBuf::from(MODEL_FOLDER).exists() {
+                    fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
+                        eprintln!("Failed to create directory: {}", e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })?;
+                }
+
+                // Collect all data chunks
+                let mut data = Vec::new();
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
                     StatusCode::BAD_REQUEST
                 })? {
-                    all_data.extend_from_slice(&chunk);
+                    data.extend_from_slice(&chunk);
                 }
 
-                // Ensure data length is multiple of 4 for Float32Array
-                let remainder = all_data.len() % 4;
-                if remainder != 0 {
-                    let padding = 4 - remainder;
-                    all_data.extend(vec![0u8; padding]);
+                // Ensure 4-byte alignment
+                let padding = (4 - (data.len() % 4)) % 4;
+                if padding > 0 {
+                    data.extend(vec![0u8; padding]);
                 }
 
-                println!("📊 Model data size: {} bytes (padded)", all_data.len());
+                println!("📊 Model size: {} bytes (padded to {})", data.len() - padding, data.len());
 
-                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
-                fs::write(&filepath, &all_data).map_err(|e| {
+                // Write aligned data
+                fs::write(&filepath, &data).map_err(|e| {
                     eprintln!("Failed to write file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
                 saved_filename = filename;
-                println!("✅ Model saved successfully: {}", saved_filename);
+                println!("✅ Model saved: {}", saved_filename);
             },
             _ => {}
         }
@@ -126,7 +134,7 @@ pub async fn upload_model(
 /// # Returns
 /// Returns a list of model URLs
 pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
-    if !PathBuf::from(MODEL_FOLDER).exists() {
+    if !PathBuf::from(MODEL_FOLDER).exists() {  // Fixed unnecessary parentheses
         fs::create_dir_all(MODEL_FOLDER)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
@@ -222,5 +230,23 @@ pub async fn delete_model(
         Ok(result) if result.deleted_count == 1 => Ok(StatusCode::NO_CONTENT),
         Ok(_) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
+    let path = PathBuf::from(MODEL_FOLDER).join(filename);
+    
+    match File::open(&path).await {
+        Ok(file) => {
+            let stream = ReaderStream::new(file);
+            let body = StreamBody::new(stream);
+            
+            Response::builder()
+                .header(header::CONTENT_TYPE, "application/octet-stream")
+                .body(body)
+                .unwrap()
+                .into_response()
+        }
+        Err(_) => StatusCode::NOT_FOUND.into_response()
     }
 }
