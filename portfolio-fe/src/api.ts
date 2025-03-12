@@ -109,16 +109,18 @@ export async function uploadModel(data: {
   }
 
   let finalBlob: Blob;
+  let originalSize = 0;
   let alignedLength = 0;
   let padding = 0;
 
   if (data.file.name.endsWith('.splat')) {
     const buffer = await data.file.arrayBuffer();
+    originalSize = buffer.byteLength;
     
-    // Ensure proper alignment for Float32Array
-    const remainder = buffer.byteLength % 4;
+    // Ensure buffer length is multiple of 4 for Float32Array
+    const remainder = originalSize % 4;
     padding = remainder ? 4 - remainder : 0;
-    alignedLength = buffer.byteLength + padding;
+    alignedLength = originalSize + padding;
     
     // Create properly aligned buffer
     const alignedBuffer = new ArrayBuffer(alignedLength);
@@ -127,14 +129,17 @@ export async function uploadModel(data: {
     // Copy original data
     view.set(new Uint8Array(buffer));
     
-    // Zero-fill any padding
+    // Zero-fill padding
     if (padding > 0) {
-      view.fill(0, buffer.byteLength);
+      view.fill(0, originalSize, alignedLength);
     }
 
-    // Validate alignment
+    // Validate alignment and content
     try {
-      new Float32Array(alignedBuffer);
+      const float32View = new Float32Array(alignedBuffer);
+      if (float32View.length * 4 !== alignedLength) {
+        throw new Error('Buffer alignment validation failed');
+      }
     } catch (e) {
       console.error('Float32Array validation failed:', e);
       throw new Error('Invalid splat file format');
@@ -142,9 +147,9 @@ export async function uploadModel(data: {
 
     finalBlob = new Blob([alignedBuffer], { type: 'application/splat' });
   } else {
-    finalBlob = new Blob([await data.file.arrayBuffer()], { 
-      type: 'application/octet-stream' 
-    });
+    const buffer = await data.file.arrayBuffer();
+    originalSize = buffer.byteLength;
+    finalBlob = new Blob([buffer], { type: 'application/octet-stream' });
   }
 
   const formData = new FormData();
@@ -155,8 +160,8 @@ export async function uploadModel(data: {
   formData.append('category', data.categoryId);
 
   console.log('📦 Uploading model:', {
-    originalSize: Buffer.byteLength,
-    alignedSize: alignedLength,
+    originalSize,
+    alignedSize: alignedLength || originalSize,
     padding,
     type: finalBlob.type,
     name: data.name

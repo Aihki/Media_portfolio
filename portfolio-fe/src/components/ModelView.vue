@@ -89,32 +89,44 @@
       const modelUrl = new URL(props.model);
       const filename = modelUrl.pathname.split('/').pop() || '';
 
-      console.log('Loading model:', {
-        filename,
-        fullUrl: props.model
-      });
-
-      // Special handling for .splat files
       if (filename.endsWith('.splat')) {
         fetch(props.model)
           .then(response => response.arrayBuffer())
           .then(buffer => {
-            // Ensure buffer length is multiple of 4
-            const remainder = buffer.byteLength % 4;
+            const originalSize = buffer.byteLength;
+            const remainder = originalSize % 4;
             const padding = remainder ? 4 - remainder : 0;
-            const alignedLength = buffer.byteLength + padding;
+            const alignedLength = originalSize + padding;
+            
+            // Create properly aligned buffer
             const alignedBuffer = new ArrayBuffer(alignedLength);
+            const view = new Uint8Array(alignedBuffer);
             
-            // Copy original data
-            new Uint8Array(alignedBuffer).set(new Uint8Array(buffer));
+            // Copy original data and ensure padding
+            view.set(new Uint8Array(buffer));
+            if (padding > 0) {
+              view.fill(0, originalSize, alignedLength);
+            }
             
-            // Create blob and URL
+            // Validate Float32Array alignment
+            try {
+              const float32View = new Float32Array(alignedBuffer);
+              if (float32View.length * 4 !== alignedLength) {
+                throw new Error('Buffer alignment validation failed');
+              }
+            } catch (e) {
+              console.error('Float32Array validation failed:', e);
+              throw new Error('Invalid splat file format');
+            }
+            
             const blob = new Blob([alignedBuffer], { type: 'application/splat' });
             const blobUrl = URL.createObjectURL(blob);
             
+            return { blobUrl, scene };
+          })
+          .then(({ blobUrl, scene }) => {
             return SceneLoader.ImportMeshAsync('', blobUrl, '', scene, undefined, '.splat')
               .then(result => {
-                // Clean up the blob URL after loading
                 URL.revokeObjectURL(blobUrl);
                 return result;
               })
