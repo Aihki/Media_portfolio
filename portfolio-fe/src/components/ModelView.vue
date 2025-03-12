@@ -31,6 +31,7 @@
     Vector3,
     HemisphericLight,
   } from '@babylonjs/core';
+  import { getFileUrl } from '../api';
 
   const props = defineProps<{
     model: string;
@@ -85,9 +86,11 @@
     if (!scene) return;
 
     try {
-        const modelPath = props.model;  // Use the full URL as is
+        const filename = props.model.split('/').pop() || '';
+        const modelPath = getFileUrl(`models/${filename}`);
 
         console.log('Loading model:', {
+            filename,
             modelPath,
             originalUrl: props.model
         });
