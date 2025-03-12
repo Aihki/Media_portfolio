@@ -401,5 +401,5 @@ export async function deleteVideo(id: string): Promise<void> {
 }
 
 export function getModelFileUrl(filename: string): string {
-    return `/api/models/file/${filename}`;
+    return `/api/models/${filename}`;
 }

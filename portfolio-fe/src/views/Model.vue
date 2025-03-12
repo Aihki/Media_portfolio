@@ -271,7 +271,7 @@
   function loadModel(url: string, scene: Scene) {
     try {
       const filename = url.split('/').pop() || '';
-      const modelPath = `/api/models/file/${filename}`;
+      const modelPath = `/api/models/${filename}`;
 
       console.log('Loading model:', {
         filename,

@@ -128,7 +128,7 @@
     try {
       const filename = model.url.split('/').pop() || '';
 
-      const modelPath = `/api/models/file/${filename}`;
+      const modelPath = `/api/models/${filename}`;
 
       console.log('Loading model:', {
         filename,
