@@ -271,45 +271,21 @@
   function loadModel(url: string, scene: Scene) {
     console.log('Loading model:', { modelPath: url });
 
-    if (url.endsWith('.splat')) {
-        fetch(url)
-            .then(response => response.arrayBuffer())
-            .then(buffer => {
-                // Ensure proper float32 alignment
-                const floatSize = 4;
-                const totalFloats = Math.floor(buffer.byteLength / floatSize);
-                const alignedLength = totalFloats * floatSize;
-
-                // Create aligned buffer
-                const alignedBuffer = buffer.slice(0, alignedLength);
-                
-                // Validate float32 alignment
-                const floatArray = new Float32Array(alignedBuffer);
-                console.log('Buffer stats:', {
-                    original: buffer.byteLength,
-                    aligned: alignedLength,
-                    floats: floatArray.length
-                });
-
-                return SceneLoader.ImportMeshAsync(
-                    "splat",
-                    "",
-                    url,
-                    scene
-                );
-            })
-            .then(result => {
-                if (result.meshes.length > 0) {
-                    const mesh = result.meshes[0];
-                    mesh.position = Vector3.Zero();
-                    mesh.scaling = new Vector3(5, 5, 5);
-                }
-            })
-            .catch(error => console.error('Model loading error:', error));
-    } else {
-        SceneLoader.ImportMeshAsync("", "", url, scene);
-    }
+    // Use SceneLoader directly for both .splat and other files
+    SceneLoader.ImportMeshAsync(
+        url.endsWith('.splat') ? "splat" : "",
+        "",
+        url,
+        scene
+    ).then(result => {
+        if (result.meshes.length > 0) {
+            const mesh = result.meshes[0];
+            mesh.position = Vector3.Zero();
+            mesh.scaling = new Vector3(5, 5, 5);
+        }
+    }).catch(error => console.error('Model loading error:', error));
 }
+
   const openModel = (model: Model) => {
     modelView.value = model;
   };
