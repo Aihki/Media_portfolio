@@ -88,6 +88,7 @@
     if (!scene) return;
 
     try {
+        // Props.model already has the full /static/models/... path
         const modelPath = props.model;
 
         console.log('Loading model:', {
@@ -96,29 +97,14 @@
         });
 
         if (modelPath.endsWith('.splat')) {
-            fetch(modelPath)
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.arrayBuffer();
-                })
-                .then(buffer => {
-                    // Create blob with aligned data
-                    const blob = new Blob([buffer], { type: 'application/octet-stream' });
-                    const blobUrl = URL.createObjectURL(blob);
 
-                    return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
-                        .then(result => {
-                            URL.revokeObjectURL(blobUrl);
-                            if (result.meshes.length > 0) {
-                                const splat = result.meshes[0];
-                                splat.position = Vector3.Zero();
-                                splat.scaling = new Vector3(5, 5, 5);
-                            }
-                        })
-                        .catch(error => {
-                            URL.revokeObjectURL(blobUrl);
-                            throw error;
-                        });
+            SceneLoader.ImportMeshAsync('', '', modelPath, scene)
+                .then(result => {
+                    if (result.meshes.length > 0) {
+                        const splat = result.meshes[0];
+                        splat.position = Vector3.Zero();
+                        splat.scaling = new Vector3(5, 5, 5);
+                    }
                 })
                 .catch(err => {
                     console.error('Error loading model:', err);

@@ -126,12 +126,10 @@
     }
 
     try {
-      const filename = model.url.split('/').pop() || '';
-
-      const modelPath = `/api/models/${filename}`;
+      // Use the model's full URL directly
+      const modelPath = model.url;
 
       console.log('Loading model:', {
-        filename,
         modelPath,
         originalUrl: model.url
       });
@@ -140,9 +138,7 @@
         '',
         '',
         modelPath,
-        currentScene,
-        undefined,
-        filename.endsWith('.splat') ? '.splat' : undefined
+        currentScene
       );
 
       if (result.meshes.length > 0) {
