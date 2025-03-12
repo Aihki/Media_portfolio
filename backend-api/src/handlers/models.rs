@@ -59,24 +59,7 @@ pub async fn upload_model(
                     return Err(StatusCode::BAD_REQUEST);
                 }
 
-                // Generate unique filename
-                let ext = Path::new(&orig_name).extension().unwrap_or_default();
-                let unique_name = format!("model_{}_{}.{}", 
-                    Uuid::new_v4(),
-                    chrono::Local::now().format("%Y%m%d"),
-                    ext.to_str().unwrap_or("splat")
-                );
-                filename = unique_name.clone();
-
-                // Ensure models directory exists
-                if !Path::new(MODEL_FOLDER).exists() {
-                    fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
-                        eprintln!("Failed to create directory: {}", e);
-                        StatusCode::INTERNAL_SERVER_ERROR
-                    })?;
-                }
-
-                // Collect and process file data
+                // Collect file data
                 let mut data = Vec::new();
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
@@ -85,21 +68,17 @@ pub async fn upload_model(
                     data.extend_from_slice(&chunk);
                 }
 
-                // Ensure proper alignment for float32 values (24 bytes per point)
-                let point_size = 24; // 6 float32 values per point
-                let points = data.len() / point_size;
-                let aligned_length = points * point_size;
+                // Ensure proper 4-byte alignment for float32 values
+                let float_size = 4;  // size of float32
+                let total_floats = data.len() / float_size;
+                let aligned_length = total_floats * float_size;
                 
-                // Truncate data to aligned length
-                let aligned_data = if data.len() > aligned_length {
-                    data[..aligned_length].to_vec()
-                } else {
-                    data
-                };
+                // Create aligned data buffer
+                let mut aligned_data = Vec::with_capacity(aligned_length);
+                aligned_data.extend_from_slice(&data[..aligned_length]);
 
-                // Write aligned data to file
-                let filepath = format!("{}/{}", MODEL_FOLDER, unique_name);
-                println!("📦 Saving model to: {}", filepath);
+                // Save aligned data
+                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
                 fs::write(&filepath, &aligned_data).map_err(|e| {
                     eprintln!("Failed to save file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
