@@ -88,23 +88,46 @@
     if (!scene) return;
 
     try {
-        // Props.model already has the full /static/models/... path
         const modelPath = props.model;
-
-        console.log('Loading model:', {
-            modelPath,
-            originalUrl: props.model
-        });
+        console.log('Loading model:', { modelPath, originalUrl: props.model });
 
         if (modelPath.endsWith('.splat')) {
-
-            SceneLoader.ImportMeshAsync('', '', modelPath, scene)
-                .then(result => {
-                    if (result.meshes.length > 0) {
-                        const splat = result.meshes[0];
-                        splat.position = Vector3.Zero();
-                        splat.scaling = new Vector3(5, 5, 5);
+            fetch(modelPath)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.arrayBuffer();
+                })
+                .then(buffer => {
+                    // Ensure proper 4-byte alignment
+                    const remainder = buffer.byteLength % 16; // Ensure total alignment for 4 float32 values
+                    const paddedLength = remainder ? buffer.byteLength + (16 - remainder) : buffer.byteLength;
+                    const alignedBuffer = new ArrayBuffer(paddedLength);
+                    new Uint8Array(alignedBuffer).set(new Uint8Array(buffer));
+                    
+                    // Validate alignment
+                    try {
+                        new Float32Array(alignedBuffer);
+                    } catch (e) {
+                        console.error('Buffer alignment error:', e);
+                        throw new Error('Invalid buffer alignment');
                     }
+
+                    const blob = new Blob([alignedBuffer], { type: 'application/octet-stream' });
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    return SceneLoader.ImportMeshAsync('', '', blobUrl, scene)
+                        .then(result => {
+                            URL.revokeObjectURL(blobUrl);
+                            if (result.meshes.length > 0) {
+                                const splat = result.meshes[0];
+                                splat.position = Vector3.Zero();
+                                splat.scaling = new Vector3(5, 5, 5);
+                            }
+                        })
+                        .catch(error => {
+                            URL.revokeObjectURL(blobUrl);
+                            throw error;
+                        });
                 })
                 .catch(err => {
                     console.error('Error loading model:', err);

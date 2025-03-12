@@ -270,15 +270,12 @@
 
   function loadModel(url: string, scene: Scene) {
     try {
-
-        const modelPath = url;
-
         console.log('Loading model:', {
-            modelPath,
+            modelPath: url,
             originalUrl: url
         });
 
-        SceneLoader.ImportMeshAsync('', '', modelPath, scene)
+        SceneLoader.ImportMeshAsync('', '', url, scene)
             .then(result => {
                 if (result.meshes.length > 0) {
                     const mesh = result.meshes[0];
