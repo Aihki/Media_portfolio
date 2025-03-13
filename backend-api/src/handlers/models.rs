@@ -259,33 +259,29 @@ pub async fn delete_model(
 pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<StreamBody<ReaderStream<File>>>, StatusCode> {
     let path = PathBuf::from(MODEL_FOLDER).join(&filename);
     
-    println!("🔍 Serving file: {}", path.display());
-    
     match File::open(&path).await {
         Ok(file) => {
             let metadata = file.metadata().await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             let file_size = metadata.len();
 
-            println!("📊 File stats for {}: size={}", filename, file_size);
-
             // Validate file structure for .splat files
             if filename.ends_with(".splat") {
-                let float_size = 4u64;
-                let floats_per_point = 6u64;
-                let bytes_per_point = float_size * floats_per_point;
-                let total_points = file_size / bytes_per_point;
-                let remainder = file_size % bytes_per_point;
+                const FLOAT_SIZE: u64 = 4;
+                const FLOATS_PER_POINT: u64 = 6;
+                const BYTES_PER_POINT: u64 = FLOAT_SIZE * FLOATS_PER_POINT;
                 
-                println!("🔢 SPLAT analysis:");
-                println!("   - Total size: {} bytes", file_size);
-                println!("   - Points: {}", total_points);
-                println!("   - Bytes per point: {}", bytes_per_point);
-                println!("   - Remainder: {}", remainder);
+                let points = file_size / BYTES_PER_POINT;
+                let aligned_size = points * BYTES_PER_POINT;
                 
-                if remainder != 0 {
-                    eprintln!("❌ Invalid file alignment: {} bytes is not divisible by {}", 
-                        file_size, bytes_per_point);
+                println!("SPLAT file validation:");
+                println!("  File size: {} bytes", file_size);
+                println!("  Points: {}", points);
+                println!("  Expected size: {} bytes", aligned_size);
+                println!("  Remainder: {} bytes", file_size % BYTES_PER_POINT);
+
+                if file_size % BYTES_PER_POINT != 0 {
+                    eprintln!("Invalid file size {} bytes, must be multiple of {}", file_size, BYTES_PER_POINT);
                     return Err(StatusCode::BAD_REQUEST);
                 }
             }
@@ -296,7 +292,7 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<S
             Ok(Response::builder()
                 .header(header::CONTENT_TYPE, "application/octet-stream")
                 .header(header::CONTENT_LENGTH, file_size.to_string())
-                .header(header::ACCEPT_RANGES, "bytes")
+                .header(header::ACCEPT_RANGES, "none")  // Disable range requests
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::CACHE_CONTROL, "no-cache, no-transform")
                 .header(header::PRAGMA, "no-cache")
@@ -305,9 +301,6 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<S
                 .body(body)
                 .unwrap())
         }
-        Err(e) => {
-            eprintln!("❌ File not found: {} - Error: {}", path.display(), e);
-            Err(StatusCode::NOT_FOUND)
-        }
+        Err(_) => Err(StatusCode::NOT_FOUND)
     }
 }

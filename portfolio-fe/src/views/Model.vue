@@ -276,43 +276,53 @@
             headers: {
                 'Accept': 'application/octet-stream',
                 'Cache-Control': 'no-cache'
-            }
+            },
+            credentials: 'omit'
         })
         .then(async response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const arrayBuffer = await response.arrayBuffer();
-            
-            // Each point has 6 float32 values (x,y,z,r,g,b)
-            const floatSize = 4;
-            const pointSize = 6 * floatSize;
-            const totalFloats = Math.floor(arrayBuffer.byteLength / floatSize);
-            const totalPoints = Math.floor(totalFloats / 6);
 
-            console.log('Data analysis:', {
-                totalBytes: arrayBuffer.byteLength,
-                totalFloats,
-                totalPoints,
-                pointSize,
-                remainder: arrayBuffer.byteLength % pointSize
+            // Get the raw buffer
+            const rawBuffer = await response.arrayBuffer();
+            console.log('Raw buffer size:', rawBuffer.byteLength);
+
+            // Make sure we have complete points
+            const floatsPerPoint = 6; // x, y, z, r, g, b
+            const bytesPerFloat = 4;
+            const bytesPerPoint = floatsPerPoint * bytesPerFloat;
+            const numPoints = Math.floor(rawBuffer.byteLength / bytesPerPoint);
+            const alignedLength = numPoints * bytesPerPoint;
+
+            console.log('Buffer details:', {
+                rawSize: rawBuffer.byteLength,
+                alignedSize: alignedLength,
+                numPoints,
+                bytesPerPoint,
+                remainder: rawBuffer.byteLength % bytesPerPoint
             });
 
-            // Create float32 view of the data
-            const dataView = new DataView(arrayBuffer);
-            const float32Data = new Float32Array(totalFloats);
+            // Create aligned float32 array
+            const alignedBuffer = rawBuffer.slice(0, alignedLength);
+            const view = new Float32Array(alignedBuffer);
 
-            // Copy data ensuring proper alignment
-            for (let i = 0; i < totalFloats; i++) {
-                float32Data[i] = dataView.getFloat32(i * 4, true);
-            }
+            // Validate point data
+            const numFloats = view.length;
+            console.log('Float32Array:', {
+                length: numFloats,
+                points: numFloats / floatsPerPoint,
+                isAligned: numFloats % floatsPerPoint === 0
+            });
 
-            // Proceed with scene loading
+            // Let Babylon.js load the model
             return SceneLoader.ImportMeshAsync(
                 "",
                 "",
                 url,
-                scene
+                scene,
+                undefined,
+                ".splat"
             );
         })
         .then(result => {
