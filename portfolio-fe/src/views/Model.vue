@@ -276,18 +276,41 @@
             headers: {
                 'Accept': 'application/octet-stream',
                 'Cache-Control': 'no-cache'
-            }
+            },
+            mode: 'cors',
+            credentials: 'omit'
         })
-        .then(response => response.arrayBuffer())
-        .then(buffer => {
+        .then(async response => {
+            const buffer = await response.arrayBuffer();
+            const totalSize = buffer.byteLength;
             const bytesPerFloat = 4;
             const floatsPerPoint = 6;
             const bytesPerPoint = bytesPerFloat * floatsPerPoint;
-            
-            if (buffer.byteLength % bytesPerPoint !== 0) {
-                throw new Error(`Invalid buffer size: ${buffer.byteLength}. Must be divisible by ${bytesPerPoint}`);
+            const numPoints = Math.floor(totalSize / bytesPerPoint);
+            const truncatedSize = numPoints * bytesPerPoint;
+
+            console.log('Buffer analysis:', {
+                totalSize,
+                truncatedSize,
+                numPoints,
+                remainder: totalSize % bytesPerPoint,
+                floatsPerPoint,
+                bytesPerPoint
+            });
+
+            if (totalSize < bytesPerPoint) {
+                throw new Error('File too small to contain any valid points');
             }
 
+            // Create properly aligned view
+            const alignedBuffer = buffer.slice(0, truncatedSize);
+            const view = new Float32Array(alignedBuffer);
+
+            if (view.length % floatsPerPoint !== 0) {
+                throw new Error('Data not properly aligned');
+            }
+
+            // Create and return mesh
             return SceneLoader.ImportMeshAsync(
                 "",
                 "",

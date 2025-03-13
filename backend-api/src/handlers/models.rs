@@ -265,18 +265,16 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<S
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             let file_size = metadata.len();
 
-            // Ensure alignment for .splat files
+            // Validate file size for .splat files
             if filename.ends_with(".splat") {
                 let float_size = 4;
                 let floats_per_point = 6;
-                let point_size = float_size * floats_per_point;
-                let remainder = file_size % point_size as u64;
+                let bytes_per_point = float_size * floats_per_point;
                 
-                println!("File stats: size={}, remainder={}, point_size={}", 
-                    file_size, remainder, point_size);
-
-                if remainder != 0 {
-                    eprintln!("Misaligned file: {} bytes with remainder {}", file_size, remainder);
+                println!("File validation: size={}, bytes_per_point={}", file_size, bytes_per_point);
+                
+                if file_size < bytes_per_point as u64 {
+                    eprintln!("File too small: {}", file_size);
                     return Err(StatusCode::BAD_REQUEST);
                 }
             }
