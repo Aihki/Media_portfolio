@@ -277,7 +277,7 @@
 
   function loadModel(url: string, scene: Scene) {
     // Ensure we're using HTTP for model URLs
-    //const httpUrl = url.replace('https://', 'http://');
+    const httpUrl = url.replace('https://', 'https://');
     console.log('Loading model:', { modelPath: httpUrl });
 
     try {
