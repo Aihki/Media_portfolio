@@ -110,20 +110,26 @@ export async function uploadModel(data: {
 
   const buffer = await data.file.arrayBuffer();
   
-  // Ensure 24-byte alignment (6 float32s per point)
-  const bytesPerPoint = 24;
-  const points = Math.floor(buffer.byteLength / bytesPerPoint);
-  const alignedLength = points * bytesPerPoint;
-  
-  // Create aligned buffer
-  const alignedBuffer = buffer.slice(0, alignedLength);
-  
-  const blob = new Blob([alignedBuffer], { 
-    type: 'application/octet-stream'
+  // Each point has 6 float32 values (x,y,z,r,g,b)
+  const bytesPerFloat = 4;
+  const floatsPerPoint = 6;
+  const bytesPerPoint = bytesPerFloat * floatsPerPoint;
+  const numPoints = Math.floor(buffer.byteLength / bytesPerPoint);
+  const alignedLength = numPoints * bytesPerPoint;
+
+  console.log('Buffer alignment:', {
+    original: buffer.byteLength,
+    aligned: alignedLength,
+    points: numPoints,
+    floatsPerPoint,
+    bytesPerPoint
   });
 
+  // Create aligned buffer
+  const alignedBuffer = buffer.slice(0, alignedLength);
+
   const formData = new FormData();
-  formData.append('file', new File([blob], data.file.name, {
+  formData.append('file', new File([alignedBuffer], data.file.name, {
     type: 'application/octet-stream'
   }));
   formData.append('name', data.name);
