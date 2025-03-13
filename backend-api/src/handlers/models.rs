@@ -82,19 +82,23 @@ pub async fn upload_model(
                     data.extend_from_slice(&chunk);
                 }
 
-                // Ensure proper 4-byte alignment for float32 values
-                let float_size = 4;
-                let total_floats = data.len() / float_size;
-                let aligned_length = total_floats * float_size;
+                // Ensure 24-byte alignment (6 float32s per point)
+                let bytes_per_point = 24;
+                let points = data.len() / bytes_per_point;
+                let aligned_length = points * bytes_per_point;
                 
-                // Create aligned data buffer
-                let mut aligned_data = Vec::with_capacity(aligned_length);
-                aligned_data.extend_from_slice(&data[..aligned_length]);
+                println!("Buffer stats: total={}, points={}, aligned={}", 
+                    data.len(), points, aligned_length);
 
-                // Save aligned data with proper path joining
+                // Create aligned buffer
+                let aligned_data = if data.len() >= aligned_length {
+                    data[..aligned_length].to_vec()
+                } else {
+                    data
+                };
+
+                // Save file
                 let filepath = PathBuf::from(MODEL_FOLDER).join(&filename);
-                println!("Saving file to: {:?}", filepath);
-                
                 fs::write(&filepath, &aligned_data).map_err(|e| {
                     eprintln!("Failed to save file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
