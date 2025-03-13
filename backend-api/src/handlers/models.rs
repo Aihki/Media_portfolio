@@ -59,14 +59,11 @@ pub async fn upload_model(
                     return Err(StatusCode::BAD_REQUEST);
                 }
 
-                // Generate unique filename
-                let ext = Path::new(&orig_name).extension().unwrap_or_default();
-                let unique_name = format!("model_{}_{}_{}", 
+                // Generate unique filename - always use .splat extension (no Path manipulation)
+                filename = format!("model_{}_{}.splat", 
                     Uuid::new_v4(),
-                    chrono::Local::now().format("%Y%m%d"),
-                    ext.to_str().unwrap_or("splat")
+                    chrono::Local::now().format("%Y%m%d")
                 );
-                filename = unique_name.clone();
 
                 // Ensure models directory exists
                 if !Path::new(MODEL_FOLDER).exists() {
@@ -92,7 +89,7 @@ pub async fn upload_model(
                 }
 
                 // Write aligned data to file
-                let filepath = format!("{}/{}", MODEL_FOLDER, unique_name);
+                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
                 println!("📦 Saving model to: {}", filepath);
                 fs::write(&filepath, &data).map_err(|e| {
                     eprintln!("Failed to save file: {}", e);
@@ -255,16 +252,14 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
             
-            let content_type = if filename.ends_with(".splat") { 
-                "application/splat"
-            } else {
-                "application/octet-stream"
-            };
-            
+            // Always use application/octet-stream for .splat files
             Response::builder()
-                .header(header::CONTENT_TYPE, content_type)
-                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", filename))
+                .header(header::CONTENT_TYPE, "application/octet-stream")
+                .header(header::CONTENT_LENGTH, fs::metadata(&path).map(|m| m.len().to_string()).unwrap_or_default())
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                .header(header::CACHE_CONTROL, "no-cache, no-transform")
+                .header(header::PRAGMA, "no-cache")
+                .header("Cross-Origin-Resource-Policy", "cross-origin")
                 .body(body)
                 .unwrap()
                 .into_response()

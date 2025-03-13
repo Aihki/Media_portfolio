@@ -279,30 +279,59 @@
     console.log('Loading model:', { modelPath: url });
 
     try {
-      // Use proper BabylonJS approach for all model types including .splat files
-      SceneLoader.ImportMeshAsync(
-        null, 
-        "", 
-        url, 
-        scene
-      ).then((result) => {
-        if (result.meshes.length > 0) {
-          const model = result.meshes[0];
-          model.position = Vector3.Zero();
-          model.scaling = new Vector3(5, 5, 5);
-          console.log('Model loaded successfully:', model.name);
-        }
-      }).catch((err) => {
-        console.error('Error loading model:', err);
-        // Fix error handling
-        const errorMessage = typeof err === 'string' 
-          ? err 
-          : err instanceof Error 
-            ? err.message 
-            : 'Failed to load model';
-        
-        error.value = errorMessage;
-      });
+      // For .splat files, use a direct URL load with specific settings
+      const isSplat = url.toLowerCase().endsWith('.splat');
+      
+      if (isSplat) {
+        // Manually fetch the file first to verify it exists and is accessible
+        fetch(url, { 
+          method: 'HEAD',
+          cache: 'no-cache'
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`File not accessible: ${response.status} ${response.statusText}`);
+          }
+          
+          // Use BabylonJS to load the model with specific settings
+          return SceneLoader.ImportMeshAsync(
+            "", 
+            url.substring(0, url.lastIndexOf('/') + 1),
+            url.substring(url.lastIndexOf('/') + 1),
+            scene
+          );
+        })
+        .then(result => {
+          if (result.meshes.length > 0) {
+            const model = result.meshes[0];
+            model.position = Vector3.Zero();
+            model.scaling = new Vector3(5, 5, 5);
+            console.log('Model loaded successfully:', model.name);
+          }
+        })
+        .catch(err => {
+          console.error('Error loading model:', err);
+          error.value = typeof err === 'string' 
+            ? err 
+            : err instanceof Error 
+              ? err.message 
+              : 'Failed to load model';
+        });
+      } else {
+        // For non-splat files, use the standard approach
+        SceneLoader.ImportMeshAsync(null, "", url, scene)
+          .then(result => {
+            if (result.meshes.length > 0) {
+              const model = result.meshes[0];
+              model.position = Vector3.Zero();
+              model.scaling = new Vector3(5, 5, 5);
+            }
+          })
+          .catch(err => {
+            console.error('Error loading model:', err);
+            error.value = typeof err === 'string' ? err : err.message || 'Failed to load model';
+          });
+      }
     } catch (err) {
       console.error('Exception during model loading:', err);
       error.value = err instanceof Error ? err.message : 'Failed to load model';

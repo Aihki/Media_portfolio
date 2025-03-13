@@ -87,22 +87,45 @@ function loadModel() {
   console.log('Loading model:', props.model);
 
   try {
-    // Use the correct BabylonJS pattern for .splat files
-    SceneLoader.ImportMeshAsync(
-      null,
-      "",
-      props.model,
-      scene
-    ).then((result) => {
-      if (result.meshes.length > 0) {
-        const mesh = result.meshes[0];
-        mesh.position = Vector3.Zero();
-        mesh.scaling = new Vector3(5, 5, 5);
-        console.log('Model loaded successfully:', mesh.name);
-      }
-    }).catch((error: any) => {
-      console.error('Error loading model:', error);
-    });
+    const isSplat = props.model.toLowerCase().endsWith('.splat');
+    
+    if (isSplat) {
+      // Split the URL into root and filename for better BabylonJS compatibility
+      const lastSlash = props.model.lastIndexOf('/');
+      const rootUrl = props.model.substring(0, lastSlash + 1);
+      const filename = props.model.substring(lastSlash + 1);
+      
+      console.log('Loading splat with path segments:', { rootUrl, filename });
+      
+      SceneLoader.ImportMeshAsync(
+        "", 
+        rootUrl,
+        filename,
+        scene
+      ).then(result => {
+        if (result.meshes.length > 0) {
+          const mesh = result.meshes[0];
+          mesh.position = Vector3.Zero();
+          mesh.scaling = new Vector3(5, 5, 5);
+          console.log('Model loaded successfully:', mesh.name);
+        }
+      }).catch(error => {
+        console.error('Error loading model:', error);
+      });
+    } else {
+      // Standard import for non-splat files
+      SceneLoader.ImportMeshAsync("", "", props.model, scene)
+        .then(result => {
+          if (result.meshes.length > 0) {
+            const mesh = result.meshes[0];
+            mesh.position = Vector3.Zero();
+            mesh.scaling = new Vector3(5, 5, 5);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading model:', error);
+        });
+    }
   } catch (err) {
     console.error('Exception during model loading:', err);
   }
