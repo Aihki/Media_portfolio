@@ -60,7 +60,7 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/models/:id", delete(models::delete_model))
         .route("/api/photos/:id", delete(photos::delete_photo))
         .route("/api/videos/:id", delete(videos::delete_video))
-        .route("/api/model-file/:filename", get(models::get_file))
+/*         .route("/api/model-file/:filename", get(models::get_file)) */
 
    /*      .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
         .nest_service("/static/videos", ServeDir::new(videos::VIDEO_FOLDER))
