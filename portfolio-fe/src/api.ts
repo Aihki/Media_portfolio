@@ -2,13 +2,8 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
 
-// Ensure we use HTTP instead of HTTPS for model files
-function ensureHttpUrl(url: string): string {
-  return url.replace('https://', 'http://');
-}
-
 export function getFileUrl(filename: string) {
-  return ensureHttpUrl(`${API_URL}/static/${filename}`);
+  return `${API_URL}/static/${filename}`;
 }
 
 export interface Category {
@@ -324,7 +319,7 @@ export async function getModelsWithDetails(): Promise<Model[]> {
   
   return response.data.map((model: Model) => ({
     ...model,
-    url: ensureHttpUrl(model.url.startsWith('http') ? model.url : `${API_URL}${model.url}`)
+    url: model.url.startsWith('http') ? model.url : `${API_URL}${model.url}`
   }));
 }
 
