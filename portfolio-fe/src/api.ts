@@ -1,32 +1,7 @@
 import axios from 'axios';
 
-// Update the API URL to match your actual backend location
-// If your backend is running on a different IP/port, change this:
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 
-// Add retry and fallback logic to handle connection issues
-const api = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  }
-});
-
-// Add response interceptor for error handling
-api.interceptors.response.use(
-  response => response,
-  async error => {
-    // Log network errors more clearly
-    if (error.message === 'Network Error' || error.code === 'ERR_CONNECTION_REFUSED') {
-      console.error('Cannot connect to API server at:', API_URL);
-      console.error('Please make sure the backend server is running.');
-    }
-    return Promise.reject(error);
-  }
-);
-
-// Use the api instance instead of axios directly
 export function getFileUrl(filename: string) {
   return `${API_URL}/static/${filename}`;
 }
@@ -37,15 +12,9 @@ export interface Category {
 }
 
 export async function listCategories(): Promise<Category[]> {
-  try {
-    const response = await api.get('/api/categories');
-    console.log('Categories from server:', response.data); 
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    // Return empty array instead of throwing to prevent UI errors
-    return [];
-  }
+  const response = await axios.get(`${API_URL}/api/categories`);
+  console.log('Categories from server:', response.data); 
+  return response.data;
 }
 
 export async function createCategory(name: string): Promise<Category> {
@@ -67,22 +36,17 @@ export type Photo = {
 };
 
 export async function getPhotosWithDetails(): Promise<Photo[]> {
-  try {
-    console.log('🔍 Fetching photos with details...');
-    const response = await api.get('/api/photos/details');
-    console.log('📸 Received photos:', response.data);
-    
-    const photosWithFullUrls = response.data.map((photo: Photo) => ({
-      ...photo,
-      url: `${API_URL}${photo.url}`
-    }));
-    
-    console.log('🖼️ Photos with full URLs:', photosWithFullUrls);
-    return photosWithFullUrls;
-  } catch (error) {
-    console.error('Error loading photos:', error);
-    return [];
-  }
+  console.log('🔍 Fetching photos with details...');
+  const response = await axios.get(`${API_URL}/api/photos/details`);
+  console.log('📸 Received photos:', response.data);
+  
+  const photosWithFullUrls = response.data.map((photo: Photo) => ({
+    ...photo,
+    url: `${API_URL}${photo.url}`
+  }));
+  
+  console.log('🖼️ Photos with full URLs:', photosWithFullUrls);
+  return photosWithFullUrls;
 }
 
 export async function uploadPhoto(data: { 
