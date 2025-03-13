@@ -271,20 +271,52 @@
   function loadModel(url: string, scene: Scene) {
     console.log('Loading model:', { modelPath: url });
 
-    // Use SceneLoader directly for both .splat and other files
-    SceneLoader.ImportMeshAsync(
-        url.endsWith('.splat') ? "splat" : "",
-        "",
-        url,
-        scene
-    ).then(result => {
-        if (result.meshes.length > 0) {
+    if (url.endsWith('.splat')) {
+      fetch(url)
+        .then(response => response.arrayBuffer())
+        .then(buffer => {
+          // Validate and align data
+          const floatSize = 4;
+          const floatsPerPoint = 6;
+          const bytesPerPoint = floatSize * floatsPerPoint;
+          const numPoints = Math.floor(buffer.byteLength / bytesPerPoint);
+          const alignedLength = numPoints * bytesPerPoint;
+
+          if (alignedLength % 4 !== 0) {
+            throw new Error('Data must be 4-byte aligned');
+          }
+
+          console.log('Model buffer:', {
+            size: buffer.byteLength,
+            aligned: alignedLength,
+            points: numPoints,
+            floatsPerPoint,
+            bytesPerPoint
+          });
+
+          // Proceed with import
+          return SceneLoader.ImportMeshAsync(
+            "splat",
+            "",
+            url,
+            scene
+          );
+        })
+        .then(result => {
+          if (result.meshes.length > 0) {
             const mesh = result.meshes[0];
             mesh.position = Vector3.Zero();
             mesh.scaling = new Vector3(5, 5, 5);
-        }
-    }).catch(error => console.error('Model loading error:', error));
-}
+          }
+        })
+        .catch(error => {
+          console.error('Model loading error:', error);
+          error.value = error.message;
+        });
+    } else {
+      SceneLoader.ImportMeshAsync("", "", url, scene);
+    }
+  }
 
   const openModel = (model: Model) => {
     modelView.value = model;
