@@ -1,6 +1,50 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Make sure to set a default if VITE_API_URL is not defined
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+// Create an axios instance with CORS configuration
+const apiClient = axios.create({
+  baseURL: API_URL,
+  withCredentials: false, // Important for CORS
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add error handlers to provide better feedback
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+    // Handle network errors more gracefully
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.warn('API connectivity issue:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: 'Cannot connect to the API server. Check that the backend is running and CORS is properly configured.'
+      });
+    }
+    
+    // Log CORS issues specifically
+    if (error.message && error.message.includes('CORS')) {
+      console.error('CORS Error: The backend server is not configured to accept requests from this origin.');
+      console.info('Solution: Ensure your backend has proper CORS headers enabled.');
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Helper function to safely make API calls with error handling
+async function safeApiCall<T>(apiCall: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await apiCall();
+  } catch (error) {
+    console.error(`API call failed:`, error);
+    return fallback;
+  }
+}
 
 export function getFileUrl(filename: string) {
   return `${API_URL}/static/${filename}`;
@@ -12,17 +56,19 @@ export interface Category {
 }
 
 export async function listCategories(): Promise<Category[]> {
-  const response = await axios.get(`${API_URL}/api/categories`);
-  console.log('Categories from server:', response.data); 
-  return response.data;
+  return safeApiCall(async () => {
+    const response = await apiClient.get('/api/categories');
+    console.log('Categories from server:', response.data); 
+    return response.data;
+  }, []);
 }
 
 export async function createCategory(name: string): Promise<Category> {
-  const response = await axios.post<Category>(`${API_URL}/api/categories`, {
-    name,
-  });
-  console.log('Created category:', response.data); 
-  return response.data;
+  return safeApiCall(async () => {
+    const response = await apiClient.post<Category>('/api/categories', { name });
+    console.log('Created category:', response.data); 
+    return response.data;
+  }, { _id: { $oid: 'temp_id' }, name } as Category);
 }
 
 export type Photo = {
@@ -36,17 +82,19 @@ export type Photo = {
 };
 
 export async function getPhotosWithDetails(): Promise<Photo[]> {
-  console.log('🔍 Fetching photos with details...');
-  const response = await axios.get(`${API_URL}/api/photos/details`);
-  console.log('📸 Received photos:', response.data);
-  
-  const photosWithFullUrls = response.data.map((photo: Photo) => ({
-    ...photo,
-    url: `${API_URL}${photo.url}`
-  }));
-  
-  console.log('🖼️ Photos with full URLs:', photosWithFullUrls);
-  return photosWithFullUrls;
+  return safeApiCall(async () => {
+    console.log('🔍 Fetching photos with details...');
+    const response = await apiClient.get('/api/photos/details');
+    console.log('📸 Received photos:', response.data);
+    
+    const photosWithFullUrls = response.data.map((photo: Photo) => ({
+      ...photo,
+      url: `${API_URL}${photo.url}`
+    }));
+    
+    console.log('🖼️ Photos with full URLs:', photosWithFullUrls);
+    return photosWithFullUrls;
+  }, []);
 }
 
 export async function uploadPhoto(data: { 
@@ -69,24 +117,29 @@ export async function uploadPhoto(data: {
     category: data.categoryId
   });
 
-  const response = await axios.post(`${API_URL}/api/upload-photo`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-      Accept: 'application/json',
-    },
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity,
-  });
+  try {
+    const response = await axios.post(`${API_URL}/api/upload-photo`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Accept: 'application/json',
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
 
-  if (!response.data) {
-    throw new Error('No response from server');
+    if (!response.data) {
+      throw new Error('No response from server');
+    }
+
+    if (response.data.error) {
+      throw new Error(response.data.error);
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading photo:', error);
+    throw error;
   }
-
-  if (response.data.error) {
-    throw new Error(response.data.error);
-  }
-
-  return response.data;
 }
 
 export async function listPhotos(): Promise<string[]> {
@@ -315,26 +368,30 @@ export type Model = {
 };
 
 export async function getModelsWithDetails(): Promise<Model[]> {
-  const response = await axios.get(`${API_URL}/api/models/details`);
-  
-  return response.data.map((model: Model) => ({
-    ...model,
-    url: model.url.startsWith('http') ? model.url : `${API_URL}${model.url}`
-  }));
+  return safeApiCall(async () => {
+    const response = await apiClient.get('/api/models/details');
+    
+    return response.data.map((model: Model) => ({
+      ...model,
+      url: model.url.startsWith('http') ? model.url : `${API_URL}${model.url}`
+    }));
+  }, []);
 }
 
 export async function getVideosWithDetails(): Promise<Video[]> {
-  console.log('🔍 Fetching videos with details...');
-  const response = await axios.get(`${API_URL}/api/videos/details`);
-  console.log('🎥 Received videos:', response.data);
-  
-  const videosWithFullUrls = response.data.map((video: Video) => ({
-    ...video,
-    url: `${API_URL}${video.url}`
-  }));
-  
-  console.log('📽️ Videos with full URLs:', videosWithFullUrls);
-  return videosWithFullUrls;
+  return safeApiCall(async () => {
+    console.log('🔍 Fetching videos with details...');
+    const response = await apiClient.get('/api/videos/details');
+    console.log('🎥 Received videos:', response.data);
+    
+    const videosWithFullUrls = response.data.map((video: Video) => ({
+      ...video,
+      url: `${API_URL}${video.url}`
+    }));
+    
+    console.log('📽️ Videos with full URLs:', videosWithFullUrls);
+    return videosWithFullUrls;
+  }, []);
 }
 
 export type Stats = {
@@ -344,8 +401,10 @@ export type Stats = {
 };
 
 export async function getStats(): Promise<Stats> {
-  const response = await axios.get(`${API_URL}/api/stats`);
-  return response.data;
+  return safeApiCall(async () => {
+    const response = await apiClient.get('/api/stats');
+    return response.data;
+  }, { photos_count: 0, models_count: 0, videos_count: 0 });
 }
 
 export async function deletePhoto(id: string): Promise<void> {
