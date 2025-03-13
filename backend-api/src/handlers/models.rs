@@ -270,13 +270,13 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<S
                 let float_size = 4;
                 let floats_per_point = 6;
                 let point_size = float_size * floats_per_point;
-                let num_points = file_size / point_size as u64;
-                let aligned_size = num_points * point_size as u64;
+                let remainder = file_size % point_size as u64;
+                
+                println!("File stats: size={}, remainder={}, point_size={}", 
+                    file_size, remainder, point_size);
 
-                println!("File alignment: size={}, points={}, aligned={}", 
-                    file_size, num_points, aligned_size);
-
-                if file_size != aligned_size {
+                if remainder != 0 {
+                    eprintln!("Misaligned file: {} bytes with remainder {}", file_size, remainder);
                     return Err(StatusCode::BAD_REQUEST);
                 }
             }
@@ -287,8 +287,8 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<S
             Ok(Response::builder()
                 .header(header::CONTENT_TYPE, "application/octet-stream")
                 .header(header::CONTENT_LENGTH, file_size.to_string())
-                .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::ACCEPT_RANGES, "bytes")
+                .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::CACHE_CONTROL, "no-cache, no-transform")
                 .header(header::PRAGMA, "no-cache")
                 .header("Content-Transfer-Encoding", "binary")
