@@ -62,9 +62,9 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/videos/:id", delete(videos::delete_video))
         .route("/api/model-file/:filename", get(models::get_file))
 
-        .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
+   /*      .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
         .nest_service("/static/videos", ServeDir::new(videos::VIDEO_FOLDER))
-        .nest_service("/static", ServeDir::new("static"))     
+        .nest_service("/static", ServeDir::new("static"))    */  
         .layer(cors)
         .layer(DefaultBodyLimit::max(1024 * 1024 * 500))
         .with_state(db)

@@ -9,9 +9,7 @@
 use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
-    http::StatusCode,
-    response::IntoResponse,
-    http::{header, Response},
+    http::StatusCode
 };
 use std::{fs, path::PathBuf, sync::Arc};
 use mongodb::Database;
@@ -221,80 +219,5 @@ pub async fn delete_model(
         Ok(result) if result.deleted_count == 1 => Ok(StatusCode::NO_CONTENT),
         Ok(_) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-/// Returns a specific model file by filename
-/// 
-/// # Arguments
-/// * `filename` - The name of the model file to retrieve
-/// 
-/// # Returns
-/// Returns the requested model file or a 404 if not found
-pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
-    let path = PathBuf::from(MODEL_FOLDER).join(&filename);
-    
-    match fs::read(&path) {
-        Ok(data) => {
-            // For .splat files, ensure 4-byte alignment
-            let data = if filename.ends_with(".splat") {
-                // Constants for .splat format
-                const FLOAT_SIZE: usize = 4;  // 4 bytes per float
-                const FLOATS_PER_POINT: usize = 6;  // x, y, z, r, g, b 
-                const BYTES_PER_POINT: usize = FLOAT_SIZE * FLOATS_PER_POINT;
-                
-                let total_size = data.len();
-                let num_points = total_size / BYTES_PER_POINT;
-                let aligned_size = num_points * BYTES_PER_POINT;
-                
-                println!("SPLAT file validation before serving:");
-                println!("  File: {}", filename);
-                println!("  Total size: {} bytes", total_size);
-                println!("  Points: {}", num_points);
-                println!("  Expected size: {} bytes", aligned_size);
-                println!("  Remainder: {} bytes", total_size % BYTES_PER_POINT);
-
-                // Ensure the data is properly aligned (truncate if necessary)
-                if total_size % BYTES_PER_POINT != 0 {
-                    println!("⚠️ Truncating file to ensure alignment");
-                    data[0..aligned_size].to_vec()
-                } else {
-                    data
-                }
-            } else {
-                data
-            };
-
-            // Set appropriate content type based on file extension
-            let content_type = match filename.split('.').last().unwrap_or("") {
-                "splat" => "application/octet-stream",
-                "obj" => "text/plain",
-                "gltf" => "model/gltf+json",
-                "glb" => "model/gltf-binary",
-                _ => "application/octet-stream",
-            };
-            
-            let mut response = Response::builder()
-                .header(header::CONTENT_TYPE, content_type)
-                .header(header::CONTENT_LENGTH, data.len().to_string())
-                .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-                .header(header::CACHE_CONTROL, "no-cache, no-transform")
-                .header(header::PRAGMA, "no-cache")
-                .header("Cross-Origin-Resource-Policy", "cross-origin");
-                
-            // Add helpful header for splat files
-            if filename.ends_with(".splat") {
-                response = response.header("X-Content-Type-Hint", "splat");
-            }
-
-            match response.body(axum::body::Body::from(data)) {
-                Ok(resp) => resp.into_response(),
-                Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response()
-            }
-        },
-        Err(e) => {
-            println!("Error serving model file {}: {}", filename, e);
-            StatusCode::NOT_FOUND.into_response()
-        }
     }
 }
