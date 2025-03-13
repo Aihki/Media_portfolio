@@ -86,19 +86,26 @@ function loadModel() {
   if (!scene) return;
   console.log('Loading model:', props.model);
 
-  SceneLoader.ImportMesh(
-    "",
-    "",
-    props.model,
-    scene,
-    function(meshes) {
-      if (meshes.length > 0) {
-        const mesh = meshes[0];
+  try {
+    // Use the correct BabylonJS pattern for .splat files
+    SceneLoader.ImportMeshAsync(
+      null,
+      "",
+      props.model,
+      scene
+    ).then((result) => {
+      if (result.meshes.length > 0) {
+        const mesh = result.meshes[0];
         mesh.position = Vector3.Zero();
         mesh.scaling = new Vector3(5, 5, 5);
+        console.log('Model loaded successfully:', mesh.name);
       }
-    }
-  );
+    }).catch((error: any) => {
+      console.error('Error loading model:', error);
+    });
+  } catch (err) {
+    console.error('Exception during model loading:', err);
+  }
 }
 
 const handleResize = () => {

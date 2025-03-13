@@ -102,7 +102,14 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useAuthStore } from '../utils/AuthStore';
   import { getModelsWithDetails, uploadModel, deleteModel as deleteModelAPI, type Model } from '../api';
-  import { Engine, Scene, ArcRotateCamera, Vector3, SceneLoader, HemisphericLight } from '@babylonjs/core';
+  import { 
+    Engine, 
+    Scene, 
+    ArcRotateCamera, 
+    Vector3, 
+    SceneLoader, 
+    HemisphericLight 
+  } from '@babylonjs/core';
   import '@babylonjs/loaders';
   import UploadForm from '../components/UploadForm.vue';
   import ModelView from '../components/ModelView.vue';
@@ -271,75 +278,43 @@
   function loadModel(url: string, scene: Scene) {
     console.log('Loading model:', { modelPath: url });
 
-    if (url.endsWith('.splat')) {
-        fetch(url, {
-            headers: {
-                'Accept': 'application/octet-stream',
-                'Cache-Control': 'no-cache'
-            },
-            credentials: 'omit'
-        })
-        .then(async response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Get the raw buffer
-            const rawBuffer = await response.arrayBuffer();
-            console.log('Raw buffer size:', rawBuffer.byteLength);
-
-            // Make sure we have complete points
-            const floatsPerPoint = 6; // x, y, z, r, g, b
-            const bytesPerFloat = 4;
-            const bytesPerPoint = floatsPerPoint * bytesPerFloat;
-            const numPoints = Math.floor(rawBuffer.byteLength / bytesPerPoint);
-            const alignedLength = numPoints * bytesPerPoint;
-
-            console.log('Buffer details:', {
-                rawSize: rawBuffer.byteLength,
-                alignedSize: alignedLength,
-                numPoints,
-                bytesPerPoint,
-                remainder: rawBuffer.byteLength % bytesPerPoint
-            });
-
-            // Create aligned float32 array
-            const alignedBuffer = rawBuffer.slice(0, alignedLength);
-            const view = new Float32Array(alignedBuffer);
-
-            // Validate point data
-            const numFloats = view.length;
-            console.log('Float32Array:', {
-                length: numFloats,
-                points: numFloats / floatsPerPoint,
-                isAligned: numFloats % floatsPerPoint === 0
-            });
-
-            // Let Babylon.js load the model
-            return SceneLoader.ImportMeshAsync(
-                "",
-                "",
-                url,
-                scene,
-                undefined,
-                ".splat"
-            );
-        })
-        .then(result => {
-            if (result.meshes.length > 0) {
-                const mesh = result.meshes[0];
-                mesh.position = Vector3.Zero();
-                mesh.scaling = new Vector3(5, 5, 5);
-            }
-        })
-        .catch(err => {
-            console.error('Model loading error:', err);
-            error.value = err instanceof Error ? err.message : 'Failed to load model';
-        });
-    } else {
-        SceneLoader.ImportMeshAsync("", "", url, scene);
+    try {
+      // Use proper BabylonJS approach for all model types including .splat files
+      SceneLoader.ImportMeshAsync(
+        null, 
+        "", 
+        url, 
+        scene
+      ).then((result) => {
+        if (result.meshes.length > 0) {
+          const model = result.meshes[0];
+          model.position = Vector3.Zero();
+          model.scaling = new Vector3(5, 5, 5);
+          console.log('Model loaded successfully:', model.name);
+        }
+      }).catch((err) => {
+        console.error('Error loading model:', err);
+        // Fix error handling
+        const errorMessage = typeof err === 'string' 
+          ? err 
+          : err instanceof Error 
+            ? err.message 
+            : 'Failed to load model';
+        
+        error.value = errorMessage;
+      });
+    } catch (err) {
+      console.error('Exception during model loading:', err);
+      error.value = err instanceof Error ? err.message : 'Failed to load model';
     }
-}
+  }
+
+  onUnmounted(() => {
+    engineMap.forEach(({ engine, scene }) => {
+      scene.dispose();
+      engine.dispose();
+    });
+  });
 
   const openModel = (model: Model) => {
     modelView.value = model;

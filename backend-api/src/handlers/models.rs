@@ -10,11 +10,11 @@ use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
     http::StatusCode,
-    response::Response,
+    response::{IntoResponse, Response},
     body::StreamBody,
     http::header,
 };
-use std::{fs, path::PathBuf, sync::Arc}; 
+use std::{fs, path::{PathBuf, Path}, sync::Arc};  // Added Path import
 use mongodb::Database;
 use crate::models::{Model, ModelResponse, Category};  
 use serde_json::json;
@@ -52,28 +52,31 @@ pub async fn upload_model(
 
         match field_name.as_str() {
             "file" => {
-                // Get original filename and generate unique name
+                // Get original filename
                 let orig_name = field.file_name().unwrap_or("").to_string();
                 if !orig_name.ends_with(".splat") {
                     eprintln!("Invalid file type: {}", orig_name);
                     return Err(StatusCode::BAD_REQUEST);
                 }
 
-                // Generate unique filename first
-                filename = format!("model_{}_{}.splat", 
+                // Generate unique filename
+                let ext = Path::new(&orig_name).extension().unwrap_or_default();
+                let unique_name = format!("model_{}_{}_{}", 
                     Uuid::new_v4(),
-                    chrono::Local::now().format("%Y%m%d")
+                    chrono::Local::now().format("%Y%m%d"),
+                    ext.to_str().unwrap_or("splat")
                 );
+                filename = unique_name.clone();
 
-                // Ensure directory exists
-                if !PathBuf::from(MODEL_FOLDER).exists() {
+                // Ensure models directory exists
+                if !Path::new(MODEL_FOLDER).exists() {
                     fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
                         eprintln!("Failed to create directory: {}", e);
                         StatusCode::INTERNAL_SERVER_ERROR
                     })?;
                 }
 
-                // Collect all data into a single buffer first
+                // Collect and process file data
                 let mut data = Vec::new();
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
@@ -82,34 +85,19 @@ pub async fn upload_model(
                     data.extend_from_slice(&chunk);
                 }
 
-                // Validate point data structure
-                const FLOAT_SIZE: usize = 4;
-                const FLOATS_PER_POINT: usize = 6;
-                const BYTES_PER_POINT: usize = FLOAT_SIZE * FLOATS_PER_POINT;
-
-                let total_size = data.len();
-                let num_points = total_size / BYTES_PER_POINT;
-                let expected_size = num_points * BYTES_PER_POINT;
-
-                println!("Upload validation:");
-                println!("  Total size: {} bytes", total_size);
-                println!("  Points: {}", num_points);
-                println!("  Expected size: {} bytes", expected_size);
-                println!("  Remainder: {} bytes", total_size % BYTES_PER_POINT);
-
-                if total_size % BYTES_PER_POINT != 0 {
-                    eprintln!("Invalid file size: {} bytes", total_size);
-                    return Err(StatusCode::BAD_REQUEST);
+                // Ensure 4-byte alignment
+                let padding = (4 - (data.len() % 4)) % 4;
+                if padding > 0 {
+                    data.extend(vec![0u8; padding]);
                 }
 
-                // Save file directly without modification
-                let filepath = PathBuf::from(MODEL_FOLDER).join(&filename);
+                // Write aligned data to file
+                let filepath = format!("{}/{}", MODEL_FOLDER, unique_name);
+                println!("📦 Saving model to: {}", filepath);
                 fs::write(&filepath, &data).map_err(|e| {
                     eprintln!("Failed to save file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
-
-                println!("File saved: {} ({} bytes)", filename, total_size);
             },
             "name" => {
                 name = field.text().await.map_err(|e| {
@@ -160,7 +148,7 @@ pub async fn upload_model(
 /// # Returns
 /// Returns a list of model URLs
 pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
-    if !PathBuf::from(MODEL_FOLDER).exists() {  // Removed unnecessary parentheses
+    if !PathBuf::from(MODEL_FOLDER).exists() {  // Fixed unnecessary parentheses
         fs::create_dir_all(MODEL_FOLDER)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
@@ -170,9 +158,7 @@ pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
             let models = paths
                 .filter_map(|entry| {
                     entry.ok().and_then(|e| {
-                        // Only include .splat files
-                        if e.path().is_file() && 
-                           e.path().extension().map_or(false, |ext| ext == "splat") {
+                        if e.path().is_file() {
                             Some(format!("/static/models/{}", 
                                 e.file_name().to_string_lossy()))
                         } else {
@@ -261,51 +247,28 @@ pub async fn delete_model(
     }
 }
 
-pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<StreamBody<ReaderStream<File>>>, StatusCode> {
-    let path = PathBuf::from(MODEL_FOLDER).join(&filename);
+pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
+    let path = PathBuf::from(MODEL_FOLDER).join(&filename);  
     
     match File::open(&path).await {
         Ok(file) => {
-            let metadata = file.metadata().await
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            let file_size = metadata.len();
-
-            // Validate file structure for .splat files
-            if filename.ends_with(".splat") {
-                const FLOAT_SIZE: u64 = 4;
-                const FLOATS_PER_POINT: u64 = 6;
-                const BYTES_PER_POINT: u64 = FLOAT_SIZE * FLOATS_PER_POINT;
-                
-                let points = file_size / BYTES_PER_POINT;
-                let aligned_size = points * BYTES_PER_POINT;
-                
-                println!("SPLAT file validation:");
-                println!("  File size: {} bytes", file_size);
-                println!("  Points: {}", points);
-                println!("  Expected size: {} bytes", aligned_size);
-                println!("  Remainder: {} bytes", file_size % BYTES_PER_POINT);
-
-                if file_size % BYTES_PER_POINT != 0 {
-                    eprintln!("Invalid file size {} bytes, must be multiple of {}", file_size, BYTES_PER_POINT);
-                    return Err(StatusCode::BAD_REQUEST);
-                }
-            }
-
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
-
-            Ok(Response::builder()
-                .header(header::CONTENT_TYPE, "application/octet-stream")
-                .header(header::CONTENT_LENGTH, file_size.to_string())
-                .header(header::ACCEPT_RANGES, "none")  // Disable range requests
+            
+            let content_type = if filename.ends_with(".splat") { 
+                "application/splat"
+            } else {
+                "application/octet-stream"
+            };
+            
+            Response::builder()
+                .header(header::CONTENT_TYPE, content_type)
+                .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{}\"", filename))
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-                .header(header::CACHE_CONTROL, "no-cache, no-transform")
-                .header(header::PRAGMA, "no-cache")
-                .header("Content-Transfer-Encoding", "binary")
-                .header("Cross-Origin-Resource-Policy", "cross-origin")
                 .body(body)
-                .unwrap())
+                .unwrap()
+                .into_response()
         }
-        Err(_) => Err(StatusCode::NOT_FOUND)
+        Err(_) => StatusCode::NOT_FOUND.into_response()
     }
 }

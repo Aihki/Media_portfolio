@@ -126,25 +126,31 @@
     }
 
     try {
-      const result = await BABYLON.SceneLoader.ImportMeshAsync(
-        "",
+      // Use the recommended BabylonJS pattern for splat files
+      BABYLON.SceneLoader.ImportMeshAsync(
+        null,
         "",
         model.url,
         currentScene
-      );
-
-      if (result.meshes.length > 0) {
-        currentMesh = result.meshes[0];
-        currentMesh.position = new BABYLON.Vector3(0, 0.5, 0);
-        currentMesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-      }
-
-      if (isRotating.value) {
-        startRotation();
-      }
+      ).then((result) => {
+        if (result.meshes.length > 0) {
+          currentMesh = result.meshes[0];
+          if (currentMesh) {
+            currentMesh.position = new BABYLON.Vector3(0, 0.5, 0);
+            currentMesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+            
+            if (isRotating.value) {
+              startRotation();
+            }
+          }
+        }
+        isLoading.value = false;
+      }).catch((error) => {
+        console.error('Model loading error:', error);
+        isLoading.value = false;
+      });
     } catch (error) {
-      console.error('Model loading error:', error);
-    } finally {
+      console.error('Exception during model loading:', error);
       isLoading.value = false;
     }
   };
