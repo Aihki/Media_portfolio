@@ -33,13 +33,21 @@ use crate::handlers::auth::login_handler;
 /// 
 /// Router instance configured with all endpoints and middleware
 pub fn create_routes(db: Arc<Database>) -> Router {
+    // Create required directories
+    for dir in ["static/models", "static/photos", "static/videos", "static/uploads"] {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            eprintln!("Failed to create directory {}: {}", dir, e);
+        }
+    }
+
     let cors = CorsLayer::new()
         .allow_origin("*".parse::<HeaderValue>().unwrap())
-        .allow_methods([Method::GET, Method::POST, Method::DELETE])
+        .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::OPTIONS])
         .allow_headers([
             header::CONTENT_TYPE,
             header::ACCEPT,
             header::AUTHORIZATION,
+            header::ORIGIN,
         ]);
 
     Router::new()
@@ -60,11 +68,8 @@ pub fn create_routes(db: Arc<Database>) -> Router {
         .route("/api/models/:id", delete(models::delete_model))
         .route("/api/photos/:id", delete(photos::delete_photo))
         .route("/api/videos/:id", delete(videos::delete_video))
-/*         .route("/api/model-file/:filename", get(models::get_file)) */
-
-   /*      .nest_service("/static/photos", ServeDir::new(photos::PHOTO_FOLDER))
-        .nest_service("/static/videos", ServeDir::new(videos::VIDEO_FOLDER))
-        .nest_service("/static", ServeDir::new("static"))    */  
+        .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/public", ServeDir::new("static"))
         .layer(cors)
         .layer(DefaultBodyLimit::max(1024 * 1024 * 500))
         .with_state(db)

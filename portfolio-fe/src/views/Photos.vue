@@ -133,8 +133,13 @@
       error.value = null;
       photos.value = await getPhotosWithDetails();
       console.log('Loaded photos with details:', photos.value);
+      
+      // Handle case when API is unreachable
+      if (photos.value.length === 0) {
+        error.value = 'Could not connect to server. Please make sure the backend is running.';
+      }
     } catch (err) {
-      error.value = 'Failed to load photos';
+      error.value = 'Failed to load photos. Is the server running?';
       console.error('Error loading photos:', err);
     } finally {
       loading.value = false;
