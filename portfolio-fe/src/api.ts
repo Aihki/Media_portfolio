@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // Make sure to set a default if VITE_API_URL is not defined
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+console.log('Using API URL:', API_URL);
 
 // Create an axios instance with CORS configuration
 const apiClient = axios.create({
@@ -22,6 +24,7 @@ apiClient.interceptors.response.use(
       console.warn('API connectivity issue:', {
         url: error.config?.url,
         method: error.config?.method,
+        baseURL: error.config?.baseURL,
         message: 'Cannot connect to the API server. Check that the backend is running and CORS is properly configured.'
       });
     }
@@ -30,6 +33,8 @@ apiClient.interceptors.response.use(
     if (error.message && error.message.includes('CORS')) {
       console.error('CORS Error: The backend server is not configured to accept requests from this origin.');
       console.info('Solution: Ensure your backend has proper CORS headers enabled.');
+      console.info('Server URL:', API_URL);
+      console.info('Current origin:', window.location.origin);
     }
     
     return Promise.reject(error);
@@ -321,26 +326,34 @@ export async function login(
   username: string,
   password: string
 ): Promise<string> {
-  const response = await axios.post(`${API_URL}/api/login`, {
-    username,
-    password,
-  });
+  try {
+    // Use apiClient instead of axios directly for better error handling
+    const response = await apiClient.post(`/api/login`, {
+      username,
+      password,
+    });
 
-  if (response.data && response.data.token) {
+    if (response.data && response.data.token) {
+      const token = response.data.token;
+      localStorage.setItem('auth_token', token);
+      
+      // Set token for all future requests
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      return token;
+    }
 
-    axios.defaults.headers.common['Authorization'] =
-      `Bearer ${response.data.token}`;
-    return response.data.token;
+    throw new Error('Login failed: Invalid response format');
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
   }
-
-  throw new Error('Login failed');
 }
-
 
 export function isLoggedIn(): boolean {
   return !!localStorage.getItem('auth_token');
 }
-
 
 export function logout(): void {
   localStorage.removeItem('auth_token');
@@ -408,13 +421,19 @@ export async function getStats(): Promise<Stats> {
 }
 
 export async function deletePhoto(id: string): Promise<void> {
-  await axios.delete(`${API_URL}/api/photos/${id}`);
+  return safeApiCall(async () => {
+    await apiClient.delete(`/api/photos/${id}`);
+  }, undefined);
 }
 
 export async function deleteModel(id: string): Promise<void> {
-  await axios.delete(`${API_URL}/api/models/${id}`);
+  return safeApiCall(async () => {
+    await apiClient.delete(`/api/models/${id}`);
+  }, undefined);
 }
 
 export async function deleteVideo(id: string): Promise<void> {
-  await axios.delete(`${API_URL}/api/videos/${id}`);
+  return safeApiCall(async () => {
+    await apiClient.delete(`/api/videos/${id}`);
+  }, undefined);
 }
