@@ -108,57 +108,35 @@ export async function uploadModel(data: {
     throw new Error('Missing required upload data');
   }
 
-
   const buffer = await data.file.arrayBuffer();
   
- 
-  const remainder = buffer.byteLength % 4;
-  const padding = remainder ? 4 - remainder : 0;
-  const alignedLength = buffer.byteLength + padding;
+  // Ensure 24-byte alignment (6 float32s per point)
+  const bytesPerPoint = 24;
+  const points = Math.floor(buffer.byteLength / bytesPerPoint);
+  const alignedLength = points * bytesPerPoint;
   
-
-  const alignedBuffer = new ArrayBuffer(alignedLength);
-  const view = new Uint8Array(alignedBuffer);
+  // Create aligned buffer
+  const alignedBuffer = buffer.slice(0, alignedLength);
   
-
-  view.set(new Uint8Array(buffer));
-  
-
-  for (let i = buffer.byteLength; i < alignedLength; i++) {
-    view[i] = 0;
-  }
-
   const blob = new Blob([alignedBuffer], { 
-    type: data.file.name.endsWith('.splat') ? 'application/splat' : 'application/octet-stream' 
+    type: 'application/octet-stream'
   });
 
   const formData = new FormData();
   formData.append('file', new File([blob], data.file.name, {
-    type: blob.type
+    type: 'application/octet-stream'
   }));
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
-
-  console.log('📦 Uploading model:', {
-    originalSize: buffer.byteLength,
-    alignedSize: alignedLength,
-    padding,
-    type: blob.type,
-    name: data.name
-  });
 
   const response = await axios.post(`${API_URL}/api/upload-model`, formData, {
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'multipart/form-data'
     },
-    maxContentLength: 536870912,
+    maxContentLength: 536870912, // 512MB
     maxBodyLength: 536870912,
-    timeout: 300000, 
-    onUploadProgress: (progressEvent) => {
-      const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total!);
-      console.log('Upload progress:', percentCompleted, '%');
-    }
+    timeout: 300000 // 5 minutes
   });
 
   if (!response.data) {
