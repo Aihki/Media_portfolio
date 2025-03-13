@@ -278,14 +278,24 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
                 data
             };
 
-            Response::builder()
-                .header(header::CONTENT_TYPE, "application/octet-stream")
+            // For .splat files, use application/octet-stream and disable JSON parsing attempts
+            let content_type = "application/octet-stream";
+            let file_ext = filename.split('.').last().unwrap_or("");
+            
+            let mut response = Response::builder()
+                .header(header::CONTENT_TYPE, content_type)
                 .header(header::CONTENT_LENGTH, data.len().to_string())
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::CACHE_CONTROL, "no-cache, no-transform")
                 .header(header::PRAGMA, "no-cache")
-                .header("Cross-Origin-Resource-Policy", "cross-origin")
-                .body(axum::body::Body::from(data))
+                .header("Cross-Origin-Resource-Policy", "cross-origin");
+                
+            // Add file extension as Content-Type-Hint for splat files
+            if file_ext == "splat" {
+                response = response.header("X-Content-Type-Hint", "splat");
+            }
+
+            response.body(axum::body::Body::from(data))
                 .unwrap()
                 .into_response()
         }

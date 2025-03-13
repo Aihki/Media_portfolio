@@ -281,74 +281,38 @@
     try {
       // Special handling for .splat files
       if (url.toLowerCase().endsWith('.splat')) {
-        // Use XMLHttpRequest for better control of binary data
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'arraybuffer';
-        xhr.onload = function() {
-          if (xhr.status === 200) {
-            console.log('File loaded successfully, processing binary data...');
-            
-            const buffer = xhr.response;
-            console.log('Original buffer size:', buffer.byteLength);
-            
-            // Ensure 4-byte alignment
-            const bytesPerFloat = 4;
-            const floatsPerPoint = 6; // x, y, z, r, g, b
-            const bytesPerPoint = bytesPerFloat * floatsPerPoint;
-            
-            const numPoints = Math.floor(buffer.byteLength / bytesPerPoint);
-            const alignedSize = numPoints * bytesPerPoint;
-            
-            console.log('Buffer analysis:', {
-              totalSize: buffer.byteLength,
-              alignedSize,
-              numPoints,
-              bytesPerFloat,
-              floatsPerPoint,
-              bytesPerPoint,
-              remainder: buffer.byteLength % bytesPerPoint
-            });
-            
-            // Create properly aligned buffer if needed
-            const finalBuffer = 
-              buffer.byteLength % bytesPerPoint !== 0 ? 
-                buffer.slice(0, alignedSize) : 
-                buffer;
-            
-            // Create a blob URL from the aligned buffer
-            const blob = new Blob([finalBuffer], {type: 'application/octet-stream'});
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // Load the model using the blob URL
-            SceneLoader.ImportMeshAsync(null, "", blobUrl, scene)
-              .then(result => {
-                if (result.meshes.length > 0) {
-                  const model = result.meshes[0];
-                  model.position = Vector3.Zero();
-                  model.scaling = new Vector3(5, 5, 5);
-                  console.log('Model loaded successfully:', model.name);
-                }
-                // Clean up the blob URL
-                URL.revokeObjectURL(blobUrl);
-              })
-              .catch(err => {
-                console.error('Error loading model from blob:', err);
-                error.value = typeof err === 'string' ? err : err.message || 'Failed to load model';
-                URL.revokeObjectURL(blobUrl);
-              });
-          } else {
-            console.error('Failed to load file:', xhr.status, xhr.statusText);
-            error.value = `Failed to load model: ${xhr.status} ${xhr.statusText}`;
+        // Don't use blob URLs since BabylonJS might try to parse them incorrectly
+        // Instead, directly create scene objects for the splat file
+        
+        // Split URL to get proper path/filename format for BabylonJS
+        const urlParts = url.split('/');
+        const filename = urlParts.pop() || '';
+        const rootUrl = urlParts.join('/') + '/';
+        
+        console.log('Loading splat with:', {
+          rootUrl,
+          filename
+        });
+
+        // Import directly from the server URL without blob manipulation
+        SceneLoader.ImportMeshAsync(
+          "", 
+          rootUrl, 
+          filename, 
+          scene
+        ).then(result => {
+          if (result.meshes.length > 0) {
+            const model = result.meshes[0];
+            model.position = Vector3.Zero();
+            model.scaling = new Vector3(5, 5, 5);
+            console.log('Model loaded successfully:', model.name);
           }
-        };
-        
-        xhr.onerror = function() {
-          console.error('Network error while loading model');
-          error.value = 'Network error while loading model';
-        };
-        
-        xhr.send();
+        }).catch(err => {
+          console.error('Error loading model:', err);
+          error.value = typeof err === 'string' ? err : 
+                        err instanceof Error ? err.message : 
+                        'Failed to load model';
+        });
       } else {
         // Standard loading for non-splat files
         SceneLoader.ImportMeshAsync(null, "", url, scene)
