@@ -339,7 +339,7 @@
                 }
               },
               null, // onProgress
-              (scene, message) => { // onError
+              (_, message) => { // onError - use underscore for unused parameter
                 console.error('Fallback loading failed:', message);
                 error.value = `Failed to load model: ${message || 'Unknown error'}`;
               }
