@@ -10,11 +10,11 @@ use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::Response,
     body::StreamBody,
     http::header,
 };
-use std::{fs, path::{PathBuf, Path}, sync::Arc};  // Added Path import
+use std::{fs, path::PathBuf, sync::Arc}; 
 use mongodb::Database;
 use crate::models::{Model, ModelResponse, Category};  
 use serde_json::json;
@@ -155,7 +155,7 @@ pub async fn upload_model(
 /// # Returns
 /// Returns a list of model URLs
 pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
-    if !PathBuf::from(MODEL_FOLDER).exists() {
+    if !PathBuf::from(MODEL_FOLDER).exists() {  // Removed unnecessary parentheses
         fs::create_dir_all(MODEL_FOLDER)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
@@ -256,26 +256,46 @@ pub async fn delete_model(
     }
 }
 
-pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
+pub async fn get_file(AxumPath(filename): AxumPath<String>) -> Result<Response<StreamBody<ReaderStream<File>>>, StatusCode> {
     let path = PathBuf::from(MODEL_FOLDER).join(&filename);
     
     match File::open(&path).await {
         Ok(file) => {
+            let metadata = file.metadata().await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let file_size = metadata.len();
+
+            // Ensure alignment for .splat files
+            if filename.ends_with(".splat") {
+                let float_size = 4;
+                let floats_per_point = 6;
+                let point_size = float_size * floats_per_point;
+                let num_points = file_size / point_size as u64;
+                let aligned_size = num_points * point_size as u64;
+
+                println!("File alignment: size={}, points={}, aligned={}", 
+                    file_size, num_points, aligned_size);
+
+                if file_size != aligned_size {
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+            }
+
             let stream = ReaderStream::new(file);
             let body = StreamBody::new(stream);
 
-            Response::builder()
+            Ok(Response::builder()
                 .header(header::CONTENT_TYPE, "application/octet-stream")
+                .header(header::CONTENT_LENGTH, file_size.to_string())
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::ACCEPT_RANGES, "bytes")
-                .header(header::CACHE_CONTROL, "no-cache")
+                .header(header::CACHE_CONTROL, "no-cache, no-transform")
                 .header(header::PRAGMA, "no-cache")
                 .header("Content-Transfer-Encoding", "binary")
                 .header("Cross-Origin-Resource-Policy", "cross-origin")
                 .body(body)
-                .unwrap()
-                .into_response()
+                .unwrap())
         }
-        Err(_) => StatusCode::NOT_FOUND.into_response()
+        Err(_) => Err(StatusCode::NOT_FOUND)
     }
 }

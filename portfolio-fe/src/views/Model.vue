@@ -272,51 +272,58 @@
     console.log('Loading model:', { modelPath: url });
 
     if (url.endsWith('.splat')) {
-      fetch(url)
+        fetch(url, {
+            headers: {
+                'Accept': 'application/octet-stream',
+                'Cache-Control': 'no-cache'
+            }
+        })
         .then(response => response.arrayBuffer())
         .then(buffer => {
-          // Validate and align data
-          const floatSize = 4;
-          const floatsPerPoint = 6;
-          const bytesPerPoint = floatSize * floatsPerPoint;
-          const numPoints = Math.floor(buffer.byteLength / bytesPerPoint);
-          const alignedLength = numPoints * bytesPerPoint;
+            // Validate buffer alignment
+            const floatBytes = 4;
+            const floatsPerPoint = 6;
+            const pointBytes = floatBytes * floatsPerPoint;
+            const numPoints = Math.floor(buffer.byteLength / pointBytes);
+            const alignedSize = numPoints * pointBytes;
 
-          if (alignedLength % 4 !== 0) {
-            throw new Error('Data must be 4-byte aligned');
-          }
+            console.log('Buffer alignment:', {
+                original: buffer.byteLength,
+                aligned: alignedSize,
+                points: numPoints,
+                floatsPerPoint,
+                bytesPerFloat: floatBytes
+            });
 
-          console.log('Model buffer:', {
-            size: buffer.byteLength,
-            aligned: alignedLength,
-            points: numPoints,
-            floatsPerPoint,
-            bytesPerPoint
-          });
+            if (buffer.byteLength % floatBytes !== 0) {
+                throw new Error('Buffer is not properly aligned');
+            }
 
-          // Proceed with import
-          return SceneLoader.ImportMeshAsync(
-            "splat",
-            "",
-            url,
-            scene
-          );
+            // Use original buffer since we validated alignment
+            return SceneLoader.ImportMeshAsync(
+                "splat",
+                "",
+                url,
+                scene
+            );
         })
         .then(result => {
-          if (result.meshes.length > 0) {
-            const mesh = result.meshes[0];
-            mesh.position = Vector3.Zero();
-            mesh.scaling = new Vector3(5, 5, 5);
-          }
+            if (result.meshes.length > 0) {
+                const mesh = result.meshes[0];
+                mesh.position = Vector3.Zero();
+                mesh.scaling = new Vector3(5, 5, 5);
+            }
         })
         .catch(error => {
-          console.error('Model loading error:', error);
-          error.value = error.message;
+            console.error('Model loading error:', error);
+            if (error.value !== null) {
+                error.value = error.message;
+            }
         });
     } else {
-      SceneLoader.ImportMeshAsync("", "", url, scene);
+        SceneLoader.ImportMeshAsync("", "", url, scene);
     }
-  }
+}
 
   const openModel = (model: Model) => {
     modelView.value = model;
