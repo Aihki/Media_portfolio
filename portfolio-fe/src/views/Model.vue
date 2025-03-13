@@ -276,20 +276,29 @@
   });
 
   function loadModel(url: string, scene: Scene) {
-    // Ensure URL uses the static path format
+    // Ensure URL uses the static path format and correct protocol
     let modelPath = url;
-    if (!url.startsWith('/static/') && url.includes('/models/')) {
-      modelPath = `/static${url}`;
+    
+    // Fix the URL to avoid double protocol/domains
+    if (url.includes('/models/')) {
+      // Extract just the path portion for models
+      const pathMatch = url.match(/\/models\/[\w.-]+\.(glb|gltf|usdz|splat)$/i);
+      if (pathMatch) {
+        // Add /static prefix to just the path portion
+        modelPath = `/static${pathMatch[0]}`;
+      } else if (!url.startsWith('/static/')) {
+        // Fallback: add /static/ prefix to the URL path
+        modelPath = `/static${new URL(url, window.location.origin).pathname}`;
+      }
     }
     
-    const httpUrl = modelPath.replace('https://', 'http://');
-    console.log('Loading model:', { originalUrl: url, modelPath: httpUrl });
+    console.log('Loading model:', { originalUrl: url, modelPath });
 
     try {
       // Special handling for .splat files
-      if (httpUrl.toLowerCase().endsWith('.splat')) {
+      if (modelPath.toLowerCase().endsWith('.splat')) {
         // Split URL to get proper path/filename format for BabylonJS
-        const urlParts = httpUrl.split('/');
+        const urlParts = modelPath.split('/');
         const filename = urlParts.pop() || '';
         const rootUrl = urlParts.join('/') + '/';
         
@@ -319,7 +328,7 @@
         });
       } else {
         // Standard loading for non-splat files
-        SceneLoader.ImportMeshAsync(null, "", httpUrl, scene)
+        SceneLoader.ImportMeshAsync(null, "", modelPath, scene)
           .then(result => {
             if (result.meshes.length > 0) {
               const model = result.meshes[0];

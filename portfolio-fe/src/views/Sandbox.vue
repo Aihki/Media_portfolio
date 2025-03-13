@@ -126,11 +126,28 @@
     }
 
     try {
+      // Fix the URL to avoid double protocol/domains
+      let modelUrl = model.url;
+      
+      if (model.url.includes('/models/')) {
+        // Extract just the path portion for models
+        const pathMatch = model.url.match(/\/models\/[\w.-]+\.(glb|gltf|usdz|splat)$/i);
+        if (pathMatch) {
+          // Add /static prefix to just the path portion
+          modelUrl = `/static${pathMatch[0]}`;
+        } else if (!model.url.startsWith('/static/')) {
+          // Fallback: add /static/ prefix to the URL path
+          modelUrl = `/static${new URL(model.url, window.location.origin).pathname}`;
+        }
+      }
+      
+      console.log('Loading model:', { originalUrl: model.url, modelUrl });
+
       // Use the recommended BabylonJS pattern for splat files
       BABYLON.SceneLoader.ImportMeshAsync(
         null,
         "",
-        model.url,
+        modelUrl,
         currentScene
       ).then((result) => {
         if (result.meshes.length > 0) {
