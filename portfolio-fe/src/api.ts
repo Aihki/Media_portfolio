@@ -110,40 +110,17 @@ export async function uploadModel(data: {
 
   const buffer = await data.file.arrayBuffer();
   
-  // Each point has 6 float32 values (x,y,z,r,g,b)
-  const floatSize = 4;  // float32 = 4 bytes
+  // Each point must have 6 float32 values (x,y,z,r,g,b)
+  const bytesPerFloat = 4;
   const floatsPerPoint = 6;
-  const bytesPerPoint = floatSize * floatsPerPoint;
-  const numPoints = Math.floor(buffer.byteLength / bytesPerPoint);
-  const alignedLength = numPoints * bytesPerPoint;
+  const bytesPerPoint = bytesPerFloat * floatsPerPoint;
 
-  // Ensure 4-byte alignment
-  if (alignedLength % 4 !== 0) {
-    throw new Error('Data must be 4-byte aligned');
-  }
-
-  console.log('Buffer details:', {
-    original: buffer.byteLength,
-    aligned: alignedLength,
-    points: numPoints,
-    remainder: buffer.byteLength % bytesPerPoint,
-    floatsPerPoint,
-    bytesPerPoint
-  });
-
-  // Create aligned buffer
-  const alignedBuffer = buffer.slice(0, alignedLength);
-  
-  // Validate alignment
-  const floatArray = new Float32Array(alignedBuffer);
-  if (floatArray.length % floatsPerPoint !== 0) {
-    throw new Error('Invalid point data alignment');
+  if (buffer.byteLength % bytesPerPoint !== 0) {
+    throw new Error(`Invalid file size: ${buffer.byteLength} bytes. Must be divisible by ${bytesPerPoint}`);
   }
 
   const formData = new FormData();
-  formData.append('file', new File([alignedBuffer], data.file.name, {
-    type: 'application/octet-stream'
-  }));
+  formData.append('file', data.file);  // Send original file
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 

@@ -280,28 +280,16 @@
         })
         .then(response => response.arrayBuffer())
         .then(buffer => {
-            // Validate buffer alignment
-            const floatBytes = 4;
+            const bytesPerFloat = 4;
             const floatsPerPoint = 6;
-            const pointBytes = floatBytes * floatsPerPoint;
-            const numPoints = Math.floor(buffer.byteLength / pointBytes);
-            const alignedSize = numPoints * pointBytes;
-
-            console.log('Buffer alignment:', {
-                original: buffer.byteLength,
-                aligned: alignedSize,
-                points: numPoints,
-                floatsPerPoint,
-                bytesPerFloat: floatBytes
-            });
-
-            if (buffer.byteLength % floatBytes !== 0) {
-                throw new Error('Buffer is not properly aligned');
+            const bytesPerPoint = bytesPerFloat * floatsPerPoint;
+            
+            if (buffer.byteLength % bytesPerPoint !== 0) {
+                throw new Error(`Invalid buffer size: ${buffer.byteLength}. Must be divisible by ${bytesPerPoint}`);
             }
 
-            // Use original buffer since we validated alignment
             return SceneLoader.ImportMeshAsync(
-                "splat",
+                "",
                 "",
                 url,
                 scene
@@ -314,11 +302,9 @@
                 mesh.scaling = new Vector3(5, 5, 5);
             }
         })
-        .catch(error => {
-            console.error('Model loading error:', error);
-            if (error.value !== null) {
-                error.value = error.message;
-            }
+        .catch(err => {
+            console.error('Model loading error:', err);
+            error.value = err instanceof Error ? err.message : 'Failed to load model';
         });
     } else {
         SceneLoader.ImportMeshAsync("", "", url, scene);
