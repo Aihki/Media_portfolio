@@ -152,8 +152,13 @@ export async function uploadModel(data: {
       'Accept': 'application/json',
       'Content-Type': 'multipart/form-data'
     },
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity
+    maxContentLength: 536870912,
+    maxBodyLength: 536870912,
+    timeout: 300000, 
+    onUploadProgress: (progressEvent) => {
+      const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total!);
+      console.log('Upload progress:', percentCompleted, '%');
+    }
   });
 
   if (!response.data) {

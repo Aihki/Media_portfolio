@@ -43,60 +43,75 @@ pub async fn upload_model(
     let mut name = String::new();
     let mut category = String::new();
 
-    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
-        eprintln!("Error processing multipart form: {}", e);
-        StatusCode::BAD_REQUEST
-    })? {
-        let field_name = field.name().unwrap_or("").to_string();
-        println!("Processing field: {:?}", field_name);
+    // Add request timeout
+    let timeout = tokio::time::timeout(
+        std::time::Duration::from_secs(300),
+        async {
+            while let Some(mut field) = multipart.next_field().await.map_err(|e| {
+                eprintln!("Error processing multipart form: {}", e);
+                StatusCode::BAD_REQUEST
+            })? {
+                let field_name = field.name().unwrap_or("").to_string();
+                println!("Processing field: {:?}", field_name);
 
-        match field_name.as_str() {
-            "file" => {
-                // Get original filename
-                let orig_name = field.file_name().unwrap_or("").to_string();
-                if !orig_name.ends_with(".splat") {
-                    eprintln!("Invalid file type: {}", orig_name);
-                    return Err(StatusCode::BAD_REQUEST);
+                match field_name.as_str() {
+                    "file" => {
+                        // Get original filename
+                        let orig_name = field.file_name().unwrap_or("").to_string();
+                        if !orig_name.ends_with(".splat") {
+                            eprintln!("Invalid file type: {}", orig_name);
+                            return Err(StatusCode::BAD_REQUEST);
+                        }
+
+                        // Collect file data
+                        let mut data = Vec::new();
+                        while let Some(chunk) = field.chunk().await.map_err(|e| {
+                            eprintln!("Error reading chunk: {}", e);
+                            StatusCode::BAD_REQUEST
+                        })? {
+                            data.extend_from_slice(&chunk);
+                        }
+
+                        // Ensure proper 4-byte alignment for float32 values
+                        let float_size = 4;  // size of float32
+                        let total_floats = data.len() / float_size;
+                        let aligned_length = total_floats * float_size;
+                        
+                        // Create aligned data buffer
+                        let mut aligned_data = Vec::with_capacity(aligned_length);
+                        aligned_data.extend_from_slice(&data[..aligned_length]);
+
+                        // Save aligned data
+                        let filepath = format!("{}/{}", MODEL_FOLDER, filename);
+                        fs::write(&filepath, &aligned_data).map_err(|e| {
+                            eprintln!("Failed to save file: {}", e);
+                            StatusCode::INTERNAL_SERVER_ERROR
+                        })?;
+                    },
+                    "name" => {
+                        name = field.text().await.map_err(|e| {
+                            eprintln!("Error reading name: {}", e);
+                            StatusCode::BAD_REQUEST
+                        })?;
+                    },
+                    "category" => {
+                        category = field.text().await.map_err(|e| {
+                            eprintln!("Error reading category: {}", e);
+                            StatusCode::BAD_REQUEST
+                        })?;
+                    },
+                    _ => {}
                 }
+            }
+            Ok::<_, StatusCode>(())
+        }
+    ).await;
 
-                // Collect file data
-                let mut data = Vec::new();
-                while let Some(chunk) = field.chunk().await.map_err(|e| {
-                    eprintln!("Error reading chunk: {}", e);
-                    StatusCode::BAD_REQUEST
-                })? {
-                    data.extend_from_slice(&chunk);
-                }
-
-                // Ensure proper 4-byte alignment for float32 values
-                let float_size = 4;  // size of float32
-                let total_floats = data.len() / float_size;
-                let aligned_length = total_floats * float_size;
-                
-                // Create aligned data buffer
-                let mut aligned_data = Vec::with_capacity(aligned_length);
-                aligned_data.extend_from_slice(&data[..aligned_length]);
-
-                // Save aligned data
-                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
-                fs::write(&filepath, &aligned_data).map_err(|e| {
-                    eprintln!("Failed to save file: {}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-            },
-            "name" => {
-                name = field.text().await.map_err(|e| {
-                    eprintln!("Error reading name: {}", e);
-                    StatusCode::BAD_REQUEST
-                })?;
-            },
-            "category" => {
-                category = field.text().await.map_err(|e| {
-                    eprintln!("Error reading category: {}", e);
-                    StatusCode::BAD_REQUEST
-                })?;
-            },
-            _ => {}
+    match timeout {
+        Ok(result) => result?,
+        Err(_) => {
+            eprintln!("Upload timeout");
+            return Err(StatusCode::REQUEST_TIMEOUT);
         }
     }
 
