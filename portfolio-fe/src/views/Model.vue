@@ -276,16 +276,15 @@
   });
 
   function loadModel(url: string, scene: Scene) {
-    console.log('Loading model:', { modelPath: url });
+    // Ensure we're using HTTP for model URLs
+    const httpUrl = url.replace('https://', 'http://');
+    console.log('Loading model:', { modelPath: httpUrl });
 
     try {
       // Special handling for .splat files
-      if (url.toLowerCase().endsWith('.splat')) {
-        // Don't use blob URLs since BabylonJS might try to parse them incorrectly
-        // Instead, directly create scene objects for the splat file
-        
+      if (httpUrl.toLowerCase().endsWith('.splat')) {
         // Split URL to get proper path/filename format for BabylonJS
-        const urlParts = url.split('/');
+        const urlParts = httpUrl.split('/');
         const filename = urlParts.pop() || '';
         const rootUrl = urlParts.join('/') + '/';
         
@@ -315,7 +314,7 @@
         });
       } else {
         // Standard loading for non-splat files
-        SceneLoader.ImportMeshAsync(null, "", url, scene)
+        SceneLoader.ImportMeshAsync(null, "", httpUrl, scene)
           .then(result => {
             if (result.meshes.length > 0) {
               const model = result.meshes[0];

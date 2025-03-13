@@ -84,12 +84,15 @@ function initScene() {
 
 function loadModel() {
   if (!scene) return;
-  console.log('Loading model:', props.model);
+  
+  // Ensure we're using HTTP for model URLs
+  const httpUrl = props.model.replace('https://', 'http://');
+  console.log('Loading model:', httpUrl);
 
   try {
-    if (props.model.toLowerCase().endsWith('.splat')) {
+    if (httpUrl.toLowerCase().endsWith('.splat')) {
       // Split URL to get proper path/filename format for BabylonJS
-      const urlParts = props.model.split('/');
+      const urlParts = httpUrl.split('/');
       const filename = urlParts.pop() || '';
       const rootUrl = urlParts.join('/') + '/';
       
@@ -116,7 +119,7 @@ function loadModel() {
       });
     } else {
       // Standard loading for non-splat files
-      SceneLoader.ImportMeshAsync("", "", props.model, scene)
+      SceneLoader.ImportMeshAsync("", "", httpUrl, scene)
         .then(result => {
           if (result.meshes.length > 0) {
             const mesh = result.meshes[0];
