@@ -276,8 +276,17 @@
   });
 
   function loadModel(url: string, scene: Scene) {
-    // Ensure we're using HTTP for model URLs
-    const httpUrl = url.replace('https://', 'http://');
+    // Ensure we're using proper URL format with API_URL for models
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
+    let httpUrl = url;
+    
+    // For relative URLs, prepend the API_URL
+    if (url.startsWith('/static/')) {
+      httpUrl = `${apiUrl}${url}`;
+    }
+    
+    // Always ensure HTTP protocol is used (not HTTPS)
+    httpUrl = httpUrl.replace('https://', 'http://');
     console.log('Loading model:', { modelPath: httpUrl });
 
     try {
@@ -293,25 +302,49 @@
           filename
         });
 
-        // Import directly from the server URL without blob manipulation
-        SceneLoader.ImportMeshAsync(
-          "", 
-          rootUrl, 
-          filename, 
-          scene
-        ).then(result => {
-          if (result.meshes.length > 0) {
-            const model = result.meshes[0];
-            model.position = Vector3.Zero();
-            model.scaling = new Vector3(5, 5, 5);
-            console.log('Model loaded successfully:', model.name);
-          }
-        }).catch(err => {
-          console.error('Error loading model:', err);
-          error.value = typeof err === 'string' ? err : 
-                        err instanceof Error ? err.message : 
-                        'Failed to load model';
+        // Try to load with a timeout to detect connection issues
+        const loadPromise = SceneLoader.ImportMeshAsync("", rootUrl, filename, scene);
+        
+        // Add timeout logic to detect failed loads
+        let timeoutId: number;
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = window.setTimeout(() => {
+            reject(new Error(`Timeout loading model from ${httpUrl}`));
+          }, 15000); // 15 seconds timeout
         });
+        
+        Promise.race([loadPromise, timeoutPromise])
+          .then((result: any) => {
+            window.clearTimeout(timeoutId);
+            if (result?.meshes?.length > 0) {
+              const model = result.meshes[0];
+              model.position = Vector3.Zero();
+              model.scaling = new Vector3(5, 5, 5);
+              console.log('Model loaded successfully:', model.name);
+            }
+          })
+          .catch(err => {
+            window.clearTimeout(timeoutId);
+            console.error('Error loading model:', err);
+            
+            // Try alternative loading approach with direct URL as fallback
+            console.log('Trying fallback loading method...');
+            SceneLoader.ImportMesh("", "", httpUrl, scene, 
+              (meshes) => { // onSuccess
+                if (meshes.length > 0) {
+                  const model = meshes[0];
+                  model.position = Vector3.Zero();
+                  model.scaling = new Vector3(5, 5, 5);
+                  console.log('Model loaded successfully with fallback:', model.name);
+                }
+              },
+              null, // onProgress
+              (scene, message) => { // onError
+                console.error('Fallback loading failed:', message);
+                error.value = `Failed to load model: ${message || 'Unknown error'}`;
+              }
+            );
+          });
       } else {
         // Standard loading for non-splat files
         SceneLoader.ImportMeshAsync(null, "", httpUrl, scene)
