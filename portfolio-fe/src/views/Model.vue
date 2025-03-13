@@ -276,9 +276,14 @@
   });
 
   function loadModel(url: string, scene: Scene) {
-    // Ensure we're using HTTP for model URLs
-    const httpUrl = url.replace('https://', 'https://');
-    console.log('Loading model:', { modelPath: httpUrl });
+    // Ensure URL uses the static path format
+    let modelPath = url;
+    if (!url.startsWith('/static/') && url.includes('/models/')) {
+      modelPath = `/static${url}`;
+    }
+    
+    const httpUrl = modelPath.replace('https://', 'http://');
+    console.log('Loading model:', { originalUrl: url, modelPath: httpUrl });
 
     try {
       // Special handling for .splat files

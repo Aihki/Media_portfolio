@@ -85,9 +85,14 @@ function initScene() {
 function loadModel() {
   if (!scene) return;
   
-  // Ensure we're using HTTP for model URLs
-  const httpUrl = props.model.replace('https://', 'http://');
-  console.log('Loading model:', httpUrl);
+  // Ensure URL uses the static path format
+  let modelPath = props.model;
+  if (!props.model.startsWith('/static/') && props.model.includes('/models/')) {
+    modelPath = `/static${props.model}`;
+  }
+  
+  const httpUrl = modelPath.replace('https://', 'http://');
+  console.log('Loading model:', { originalUrl: props.model, modelPath: httpUrl });
 
   try {
     if (httpUrl.toLowerCase().endsWith('.splat')) {
