@@ -73,7 +73,7 @@ pub async fn upload_model(
                     })?;
                 }
 
-                // Collect file data
+                // Collect all data into a single buffer first
                 let mut data = Vec::new();
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
@@ -82,29 +82,34 @@ pub async fn upload_model(
                     data.extend_from_slice(&chunk);
                 }
 
-                // Ensure 24-byte alignment (6 float32s per point)
-                let bytes_per_point = 24;
-                let points = data.len() / bytes_per_point;
-                let aligned_length = points * bytes_per_point;
-                
-                println!("Buffer stats: total={}, points={}, aligned={}", 
-                    data.len(), points, aligned_length);
+                // Validate point data structure
+                const FLOAT_SIZE: usize = 4;
+                const FLOATS_PER_POINT: usize = 6;
+                const BYTES_PER_POINT: usize = FLOAT_SIZE * FLOATS_PER_POINT;
 
-                // Create aligned buffer
-                let aligned_data = if data.len() >= aligned_length {
-                    data[..aligned_length].to_vec()
-                } else {
-                    data
-                };
+                let total_size = data.len();
+                let num_points = total_size / BYTES_PER_POINT;
+                let expected_size = num_points * BYTES_PER_POINT;
 
-                // Save file
+                println!("Upload validation:");
+                println!("  Total size: {} bytes", total_size);
+                println!("  Points: {}", num_points);
+                println!("  Expected size: {} bytes", expected_size);
+                println!("  Remainder: {} bytes", total_size % BYTES_PER_POINT);
+
+                if total_size % BYTES_PER_POINT != 0 {
+                    eprintln!("Invalid file size: {} bytes", total_size);
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+
+                // Save file directly without modification
                 let filepath = PathBuf::from(MODEL_FOLDER).join(&filename);
-                fs::write(&filepath, &aligned_data).map_err(|e| {
+                fs::write(&filepath, &data).map_err(|e| {
                     eprintln!("Failed to save file: {}", e);
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
 
-                println!("File saved successfully as: {}", filename);
+                println!("File saved: {} ({} bytes)", filename, total_size);
             },
             "name" => {
                 name = field.text().await.map_err(|e| {

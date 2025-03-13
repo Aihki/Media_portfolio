@@ -108,30 +108,39 @@ export async function uploadModel(data: {
     throw new Error('Missing required upload data');
   }
 
+  // Read file as ArrayBuffer and validate
   const buffer = await data.file.arrayBuffer();
-  
-  // Each point must have 6 float32 values (x,y,z,r,g,b)
   const bytesPerFloat = 4;
   const floatsPerPoint = 6;
   const bytesPerPoint = bytesPerFloat * floatsPerPoint;
+  
+  console.log('Upload file validation:', {
+    totalSize: buffer.byteLength,
+    expectedSize: Math.floor(buffer.byteLength / bytesPerPoint) * bytesPerPoint,
+    remainder: buffer.byteLength % bytesPerPoint,
+    points: Math.floor(buffer.byteLength / bytesPerPoint)
+  });
 
   if (buffer.byteLength % bytesPerPoint !== 0) {
     throw new Error(`Invalid file size: ${buffer.byteLength} bytes. Must be divisible by ${bytesPerPoint}`);
   }
 
+  // Create blob with proper type
+  const blob = new Blob([buffer], { type: 'application/octet-stream' });
   const formData = new FormData();
-  formData.append('file', data.file);  // Send original file
+  formData.append('file', new File([blob], data.file.name, { type: 'application/octet-stream' }));
   formData.append('name', data.name);
   formData.append('category', data.categoryId);
 
+  // Upload with specific headers
   const response = await axios.post(`${API_URL}/api/upload-model`, formData, {
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'multipart/form-data'
     },
-    maxContentLength: 536870912, // 512MB
+    maxContentLength: 536870912,
     maxBodyLength: 536870912,
-    timeout: 300000 // 5 minutes
+    timeout: 300000
   });
 
   if (!response.data) {
