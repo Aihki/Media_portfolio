@@ -10,19 +10,18 @@ use axum::{
     extract::{Multipart, State, Path as AxumPath},
     Json,
     http::StatusCode,
-    response::{IntoResponse, Response},
-    body::StreamBody,
-    http::header,
+    response::IntoResponse,
+    http::{header, Response},
 };
-use std::{fs, path::{PathBuf, Path}, sync::Arc};  // Added Path import
+use std::{fs, path::PathBuf, sync::Arc};
 use mongodb::Database;
 use crate::models::{Model, ModelResponse, Category};  
 use serde_json::json;
+use std::io::Write;
 use uuid::Uuid;
 use futures_util::StreamExt;
-use mongodb::bson::{oid::ObjectId, doc};
-use tokio::fs::File;
-use tokio_util::io::ReaderStream;
+use mongodb::bson::oid::ObjectId;
+use mongodb::bson::doc;
 
 /// Directory where 3D models are stored
 pub const MODEL_FOLDER: &str = "static/models";
@@ -39,96 +38,77 @@ pub async fn upload_model(
     State(db): State<Arc<Database>>,
     mut multipart: Multipart
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let mut filename = String::new();
     let mut name = String::new();
-    let mut category = String::new();
+    let mut category_id = String::new();
+    let mut saved_filename = String::new();
 
-    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
-        eprintln!("Error processing multipart form: {}", e);
+    while let Some(mut field) = multipart.next_field().await.map_err(|e| { 
+        eprintln!("Error getting next field: {}", e);
         StatusCode::BAD_REQUEST
     })? {
-        let field_name = field.name().unwrap_or("").to_string();
-        println!("Processing field: {:?}", field_name);
-
-        match field_name.as_str() {
-            "file" => {
-                // Get original filename
-                let orig_name = field.file_name().unwrap_or("").to_string();
-                if !orig_name.ends_with(".splat") {
-                    eprintln!("Invalid file type: {}", orig_name);
-                    return Err(StatusCode::BAD_REQUEST);
-                }
-
-                // Generate unique filename - always use .splat extension (no Path manipulation)
-                filename = format!("model_{}_{}.splat", 
-                    Uuid::new_v4(),
-                    chrono::Local::now().format("%Y%m%d")
-                );
-
-                // Ensure models directory exists
-                if !Path::new(MODEL_FOLDER).exists() {
+        match field.name() {
+            Some("name") => {
+                name = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            },
+            Some("category") => {
+                category_id = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            },
+            Some("file") => {
+                let filename = field.file_name()
+                    .map(|f| f.to_string())
+                    .unwrap_or_else(|| format!("{}.splat", Uuid::new_v4()));
+                
+                println!("📦 Uploading model: {}", filename);
+                
+                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
+                
+                if !PathBuf::from(MODEL_FOLDER).exists() {
                     fs::create_dir_all(MODEL_FOLDER).map_err(|e| {
                         eprintln!("Failed to create directory: {}", e);
                         StatusCode::INTERNAL_SERVER_ERROR
                     })?;
                 }
 
-                // Collect and process file data
-                let mut data = Vec::new();
+
+                let mut file = std::fs::File::create(&filepath).map_err(|e| {
+                    eprintln!("Failed to create file: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+
                 while let Some(chunk) = field.chunk().await.map_err(|e| {
                     eprintln!("Error reading chunk: {}", e);
                     StatusCode::BAD_REQUEST
                 })? {
-                    data.extend_from_slice(&chunk);
+                    file.write_all(&chunk).map_err(|e| {
+                        eprintln!("Failed to write chunk: {}", e);
+                        StatusCode::INTERNAL_SERVER_ERROR
+                    })?;
                 }
 
-                // Ensure 4-byte alignment
-                let padding = (4 - (data.len() % 4)) % 4;
-                if padding > 0 {
-                    data.extend(vec![0u8; padding]);
-                }
-
-                // Write aligned data to file
-                let filepath = format!("{}/{}", MODEL_FOLDER, filename);
-                println!("📦 Saving model to: {}", filepath);
-                fs::write(&filepath, &data).map_err(|e| {
-                    eprintln!("Failed to save file: {}", e);
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-            },
-            "name" => {
-                name = field.text().await.map_err(|e| {
-                    eprintln!("Error reading name: {}", e);
-                    StatusCode::BAD_REQUEST
-                })?;
-            },
-            "category" => {
-                category = field.text().await.map_err(|e| {
-                    eprintln!("Error reading category: {}", e);
-                    StatusCode::BAD_REQUEST
-                })?;
+                saved_filename = filename.clone();
             },
             _ => {}
         }
     }
 
-    // Save model metadata to database
-    if name.is_empty() || category.is_empty() || filename.is_empty() {
+
+    if name.is_empty() || category_id.is_empty() || saved_filename.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let category_object_id = mongodb::bson::oid::ObjectId::parse_str(&category)
+    let category_object_id = mongodb::bson::oid::ObjectId::parse_str(&category_id)
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let model = Model::new(name, filename.clone(), category_object_id);
+
+    let model = Model::new(name, saved_filename.clone(), category_object_id);
     
     match db.collection::<Model>("models")
         .insert_one(model, None)
         .await {
         Ok(_) => {
             let response = json!({
-                "url": format!("/static/models/{}", filename),
-                "filename": filename,
+                "url": format!("/static/models/{}", saved_filename),
+                "filename": saved_filename,
                 "success": true
             });
             Ok(Json(response))
@@ -145,7 +125,7 @@ pub async fn upload_model(
 /// # Returns
 /// Returns a list of model URLs
 pub async fn list_models() -> Result<Json<Vec<String>>, StatusCode> {
-    if !PathBuf::from(MODEL_FOLDER).exists() {  // Fixed unnecessary parentheses
+    if !PathBuf::from(MODEL_FOLDER).exists() {
         fs::create_dir_all(MODEL_FOLDER)
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     }
@@ -244,6 +224,13 @@ pub async fn delete_model(
     }
 }
 
+/// Returns a specific model file by filename
+/// 
+/// # Arguments
+/// * `filename` - The name of the model file to retrieve
+/// 
+/// # Returns
+/// Returns the requested model file or a 404 if not found
 pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
     let path = PathBuf::from(MODEL_FOLDER).join(&filename);
     
@@ -278,9 +265,14 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
                 data
             };
 
-            // For .splat files, use application/octet-stream and disable JSON parsing attempts
-            let content_type = "application/octet-stream";
-            let file_ext = filename.split('.').last().unwrap_or("");
+            // Set appropriate content type based on file extension
+            let content_type = match filename.split('.').last().unwrap_or("") {
+                "splat" => "application/octet-stream",
+                "obj" => "text/plain",
+                "gltf" => "model/gltf+json",
+                "glb" => "model/gltf-binary",
+                _ => "application/octet-stream",
+            };
             
             let mut response = Response::builder()
                 .header(header::CONTENT_TYPE, content_type)
@@ -290,15 +282,19 @@ pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse
                 .header(header::PRAGMA, "no-cache")
                 .header("Cross-Origin-Resource-Policy", "cross-origin");
                 
-            // Add file extension as Content-Type-Hint for splat files
-            if file_ext == "splat" {
+            // Add helpful header for splat files
+            if filename.ends_with(".splat") {
                 response = response.header("X-Content-Type-Hint", "splat");
             }
 
-            response.body(axum::body::Body::from(data))
-                .unwrap()
-                .into_response()
+            match response.body(axum::body::Body::from(data)) {
+                Ok(resp) => resp.into_response(),
+                Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
+        },
+        Err(e) => {
+            println!("Error serving model file {}: {}", filename, e);
+            StatusCode::NOT_FOUND.into_response()
         }
-        Err(_) => StatusCode::NOT_FOUND.into_response()
     }
 }
