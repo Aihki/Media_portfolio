@@ -61,6 +61,14 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore();
 
+  // Check if the route is requesting a static model file first
+  if (to.path.startsWith('/models/') && 
+      (to.path.endsWith('.glb') || to.path.endsWith('.gltf') || 
+       to.path.endsWith('.usdz') || to.path.endsWith('.splat'))) {
+    window.location.href = to.fullPath;
+    return;
+  }
+
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
       next({
@@ -74,7 +82,5 @@ router.beforeEach((to, _from, next) => {
     next(); 
   }
 });
-
-
 
 export default router;
