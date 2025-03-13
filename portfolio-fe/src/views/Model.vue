@@ -276,41 +276,38 @@
             headers: {
                 'Accept': 'application/octet-stream',
                 'Cache-Control': 'no-cache'
-            },
-            mode: 'cors',
-            credentials: 'omit'
+            }
         })
         .then(async response => {
-            const buffer = await response.arrayBuffer();
-            const totalSize = buffer.byteLength;
-            const bytesPerFloat = 4;
-            const floatsPerPoint = 6;
-            const bytesPerPoint = bytesPerFloat * floatsPerPoint;
-            const numPoints = Math.floor(totalSize / bytesPerPoint);
-            const truncatedSize = numPoints * bytesPerPoint;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            
+            // Each point has 6 float32 values (x,y,z,r,g,b)
+            const floatSize = 4;
+            const pointSize = 6 * floatSize;
+            const totalFloats = Math.floor(arrayBuffer.byteLength / floatSize);
+            const totalPoints = Math.floor(totalFloats / 6);
 
-            console.log('Buffer analysis:', {
-                totalSize,
-                truncatedSize,
-                numPoints,
-                remainder: totalSize % bytesPerPoint,
-                floatsPerPoint,
-                bytesPerPoint
+            console.log('Data analysis:', {
+                totalBytes: arrayBuffer.byteLength,
+                totalFloats,
+                totalPoints,
+                pointSize,
+                remainder: arrayBuffer.byteLength % pointSize
             });
 
-            if (totalSize < bytesPerPoint) {
-                throw new Error('File too small to contain any valid points');
+            // Create float32 view of the data
+            const dataView = new DataView(arrayBuffer);
+            const float32Data = new Float32Array(totalFloats);
+
+            // Copy data ensuring proper alignment
+            for (let i = 0; i < totalFloats; i++) {
+                float32Data[i] = dataView.getFloat32(i * 4, true);
             }
 
-            // Create properly aligned view
-            const alignedBuffer = buffer.slice(0, truncatedSize);
-            const view = new Float32Array(alignedBuffer);
-
-            if (view.length % floatsPerPoint !== 0) {
-                throw new Error('Data not properly aligned');
-            }
-
-            // Create and return mesh
+            // Proceed with scene loading
             return SceneLoader.ImportMeshAsync(
                 "",
                 "",
