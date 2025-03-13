@@ -87,33 +87,67 @@ function loadModel() {
   console.log('Loading model:', props.model);
 
   try {
-    const isSplat = props.model.toLowerCase().endsWith('.splat');
-    
-    if (isSplat) {
-      // Split the URL into root and filename for better BabylonJS compatibility
-      const lastSlash = props.model.lastIndexOf('/');
-      const rootUrl = props.model.substring(0, lastSlash + 1);
-      const filename = props.model.substring(lastSlash + 1);
-      
-      console.log('Loading splat with path segments:', { rootUrl, filename });
-      
-      SceneLoader.ImportMeshAsync(
-        "", 
-        rootUrl,
-        filename,
-        scene
-      ).then(result => {
-        if (result.meshes.length > 0) {
-          const mesh = result.meshes[0];
-          mesh.position = Vector3.Zero();
-          mesh.scaling = new Vector3(5, 5, 5);
-          console.log('Model loaded successfully:', mesh.name);
+    if (props.model.toLowerCase().endsWith('.splat')) {
+      // Use XMLHttpRequest for better binary data handling
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', props.model, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          const buffer = xhr.response;
+          console.log('ModelView - loaded buffer size:', buffer.byteLength);
+          
+          // Ensure 4-byte alignment
+          const bytesPerFloat = 4;
+          const floatsPerPoint = 6;
+          const bytesPerPoint = bytesPerFloat * floatsPerPoint;
+          
+          const numPoints = Math.floor(buffer.byteLength / bytesPerPoint);
+          const alignedSize = numPoints * bytesPerPoint;
+          
+          console.log('Buffer alignment check:', {
+            originalSize: buffer.byteLength,
+            alignedSize,
+            numPoints,
+            remainder: buffer.byteLength % bytesPerPoint
+          });
+          
+          // Create aligned buffer if needed
+          const finalBuffer = 
+            buffer.byteLength % bytesPerPoint !== 0 ? 
+              buffer.slice(0, alignedSize) : 
+              buffer;
+              
+          // Create blob URL for the aligned data
+          const blob = new Blob([finalBuffer], {type: 'application/octet-stream'});
+          const blobUrl = URL.createObjectURL(blob);
+          
+          SceneLoader.ImportMeshAsync(null, "", blobUrl, scene)
+            .then(result => {
+              if (result.meshes.length > 0) {
+                const mesh = result.meshes[0];
+                mesh.position = Vector3.Zero();
+                mesh.scaling = new Vector3(5, 5, 5);
+              }
+              // Clean up
+              URL.revokeObjectURL(blobUrl);
+            })
+            .catch(error => {
+              console.error('Error loading model from blob:', error);
+              URL.revokeObjectURL(blobUrl);
+            });
+        } else {
+          console.error('Failed to load file:', xhr.status, xhr.statusText);
         }
-      }).catch(error => {
-        console.error('Error loading model:', error);
-      });
+      };
+      
+      xhr.onerror = function() {
+        console.error('Network error while loading model');
+      };
+      
+      xhr.send();
     } else {
-      // Standard import for non-splat files
+      // Standard loading for non-splat files
       SceneLoader.ImportMeshAsync("", "", props.model, scene)
         .then(result => {
           if (result.meshes.length > 0) {

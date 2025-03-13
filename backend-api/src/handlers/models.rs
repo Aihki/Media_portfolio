@@ -245,22 +245,47 @@ pub async fn delete_model(
 }
 
 pub async fn get_file(AxumPath(filename): AxumPath<String>) -> impl IntoResponse {
-    let path = PathBuf::from(MODEL_FOLDER).join(&filename);  
+    let path = PathBuf::from(MODEL_FOLDER).join(&filename);
     
-    match File::open(&path).await {
-        Ok(file) => {
-            let stream = ReaderStream::new(file);
-            let body = StreamBody::new(stream);
-            
-            // Always use application/octet-stream for .splat files
+    match fs::read(&path) {
+        Ok(data) => {
+            // For .splat files, ensure 4-byte alignment
+            let data = if filename.ends_with(".splat") {
+                // Constants for .splat format
+                const FLOAT_SIZE: usize = 4;  // 4 bytes per float
+                const FLOATS_PER_POINT: usize = 6;  // x, y, z, r, g, b 
+                const BYTES_PER_POINT: usize = FLOAT_SIZE * FLOATS_PER_POINT;
+                
+                let total_size = data.len();
+                let num_points = total_size / BYTES_PER_POINT;
+                let aligned_size = num_points * BYTES_PER_POINT;
+                
+                println!("SPLAT file validation before serving:");
+                println!("  File: {}", filename);
+                println!("  Total size: {} bytes", total_size);
+                println!("  Points: {}", num_points);
+                println!("  Expected size: {} bytes", aligned_size);
+                println!("  Remainder: {} bytes", total_size % BYTES_PER_POINT);
+
+                // Ensure the data is properly aligned (truncate if necessary)
+                if total_size % BYTES_PER_POINT != 0 {
+                    println!("⚠️ Truncating file to ensure alignment");
+                    data[0..aligned_size].to_vec()
+                } else {
+                    data
+                }
+            } else {
+                data
+            };
+
             Response::builder()
                 .header(header::CONTENT_TYPE, "application/octet-stream")
-                .header(header::CONTENT_LENGTH, fs::metadata(&path).map(|m| m.len().to_string()).unwrap_or_default())
+                .header(header::CONTENT_LENGTH, data.len().to_string())
                 .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(header::CACHE_CONTROL, "no-cache, no-transform")
                 .header(header::PRAGMA, "no-cache")
                 .header("Cross-Origin-Resource-Policy", "cross-origin")
-                .body(body)
+                .body(axum::body::Body::from(data))
                 .unwrap()
                 .into_response()
         }
