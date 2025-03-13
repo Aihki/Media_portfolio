@@ -102,14 +102,7 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
   import { useAuthStore } from '../utils/AuthStore';
   import { getModelsWithDetails, uploadModel, deleteModel as deleteModelAPI, type Model } from '../api';
-  import { 
-    Engine, 
-    Scene, 
-    ArcRotateCamera, 
-    Vector3, 
-    SceneLoader, 
-    HemisphericLight 
-  } from '@babylonjs/core';
+  import { Engine, Scene, ArcRotateCamera, Vector3, SceneLoader, HemisphericLight } from '@babylonjs/core';
   import '@babylonjs/loaders';
   import UploadForm from '../components/UploadForm.vue';
   import ModelView from '../components/ModelView.vue';
@@ -276,93 +269,27 @@
   });
 
   function loadModel(url: string, scene: Scene) {
-    // Ensure we're using proper URL format with API_URL for models
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
-    let httpUrl = url;
-    
-    // For relative URLs, prepend the API_URL
-    if (url.startsWith('/static/')) {
-      httpUrl = `${apiUrl}${url}`;
-    }
-    
-    // Always ensure HTTP protocol is used (not HTTPS)
-    httpUrl = httpUrl.replace('https://', 'http://');
-    console.log('Loading model:', { modelPath: httpUrl });
-
     try {
-      // Special handling for .splat files
-      if (httpUrl.toLowerCase().endsWith('.splat')) {
-        // Split URL to get proper path/filename format for BabylonJS
-        const urlParts = httpUrl.split('/');
-        const filename = urlParts.pop() || '';
-        const rootUrl = urlParts.join('/') + '/';
-        
-        console.log('Loading splat with:', {
-          rootUrl,
-          filename
+      SceneLoader.ImportMeshAsync('', url, '', scene)
+        .then(result => {
+          if (result.meshes.length > 0) {
+            const splat = result.meshes[0];
+            splat.name = 'standardMesh';
+            splat.position = Vector3.Zero();
+            splat.scaling = new Vector3(5, 5, 5);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading model:', error);
+          if (error.value !== null) {
+            error.value = `Failed to load model: ${url.split('/').pop()}`;
+          }
         });
-
-        // Try to load with a timeout to detect connection issues
-        const loadPromise = SceneLoader.ImportMeshAsync("", rootUrl, filename, scene);
-        
-        // Add timeout logic to detect failed loads
-        let timeoutId: number;
-        const timeoutPromise = new Promise((_, reject) => {
-          timeoutId = window.setTimeout(() => {
-            reject(new Error(`Timeout loading model from ${httpUrl}`));
-          }, 15000); // 15 seconds timeout
-        });
-        
-        Promise.race([loadPromise, timeoutPromise])
-          .then((result: any) => {
-            window.clearTimeout(timeoutId);
-            if (result?.meshes?.length > 0) {
-              const model = result.meshes[0];
-              model.position = Vector3.Zero();
-              model.scaling = new Vector3(5, 5, 5);
-              console.log('Model loaded successfully:', model.name);
-            }
-          })
-          .catch(err => {
-            window.clearTimeout(timeoutId);
-            console.error('Error loading model:', err);
-            
-            // Try alternative loading approach with direct URL as fallback
-            console.log('Trying fallback loading method...');
-            SceneLoader.ImportMesh("", "", httpUrl, scene, 
-              (meshes) => { // onSuccess
-                if (meshes.length > 0) {
-                  const model = meshes[0];
-                  model.position = Vector3.Zero();
-                  model.scaling = new Vector3(5, 5, 5);
-                  console.log('Model loaded successfully with fallback:', model.name);
-                }
-              },
-              null, // onProgress
-              (_, message) => { // onError - use underscore for unused parameter
-                console.error('Fallback loading failed:', message);
-                error.value = `Failed to load model: ${message || 'Unknown error'}`;
-              }
-            );
-          });
-      } else {
-        // Standard loading for non-splat files
-        SceneLoader.ImportMeshAsync(null, "", httpUrl, scene)
-          .then(result => {
-            if (result.meshes.length > 0) {
-              const model = result.meshes[0];
-              model.position = Vector3.Zero();
-              model.scaling = new Vector3(5, 5, 5);
-            }
-          })
-          .catch(err => {
-            console.error('Error loading model:', err);
-            error.value = typeof err === 'string' ? err : err.message || 'Failed to load model';
-          });
-      }
     } catch (err) {
-      console.error('Exception during model loading:', err);
-      error.value = err instanceof Error ? err.message : 'Failed to load model';
+      console.error('Error in loadModel:', err);
+      if (error.value !== null) {
+        error.value = `Error loading model: ${url.split('/').pop()}`;
+      }
     }
   }
 
