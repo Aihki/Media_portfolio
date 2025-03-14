@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-100">
+  <div v-if="isOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-10">
     <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md">
       <h2 class="text-xl font-bold text-gray-200 mb-4">Give Feedback</h2>
       

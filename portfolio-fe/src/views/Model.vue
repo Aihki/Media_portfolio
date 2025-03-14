@@ -52,7 +52,7 @@
               Category: {{ model.category_name }}
             </p>
           </div>
-          <div class="absolute bottom-2 right-2 flex gap-2 z-10">
+          <div class="absolute bottom-2 right-2 flex gap-2 ">
             <button
               @click.stop="openFeedback(model)"
               class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded transition-colors"
