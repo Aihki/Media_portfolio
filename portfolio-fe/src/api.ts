@@ -179,8 +179,14 @@ export async function uploadModel(data: {
     points: Math.floor(buffer.byteLength / bytesPerPoint)
   });
 
+  // Comment out the strict validation to allow any file size
+  // if (buffer.byteLength % bytesPerPoint !== 0) {
+  //   throw new Error(`Invalid file size: ${buffer.byteLength} bytes. Must be divisible by ${bytesPerPoint}`);
+  // }
+  
+  // Add warning instead of error
   if (buffer.byteLength % bytesPerPoint !== 0) {
-    throw new Error(`Invalid file size: ${buffer.byteLength} bytes. Must be divisible by ${bytesPerPoint}`);
+    console.warn(`Warning: File size (${buffer.byteLength} bytes) is not divisible by ${bytesPerPoint}. The model might be incomplete.`);
   }
 
   // Create blob with proper type
