@@ -22,6 +22,7 @@ A Vue 3-based frontend application for the media portfolio, featuring photo, vid
 - **Routing**: Vue Router
 - **HTTP Client**: Axios
 - **3D Graphics**: BabylonJS
+- **Canvas Manipulation**: Fabric.js (for pixel art creation)
 - **AI Integration**: TensorFlow.js with MobileNet
 - **Database**: Firebase Firestore (for user feedback)
 - **File Upload**: Multipart/form-data with progress tracking
@@ -106,15 +107,15 @@ The built files will be in the `dist` directory.
 
 ### Media Galleries
 
-- **Photos.vue**: Photo gallery with upload, filtering, and feedback
-- **Videos.vue**: Video gallery with upload, filtering, and playback
+- **Photos.vue**: Photo gallery with upload, and feedback
+- **Videos.vue**: Video gallery with upload, and playback
 - **Model.vue**: 3D model gallery with upload and interactive viewing
 
 ### Interactive Features
 
 - **ModelView.vue**: 3D model viewer using BabylonJS
 - **Sandbox.vue**: Interactive 3D model exploration space
-- **PixelCanvas.vue**: Pixel art creation tool
+- **PixelCanvas.vue**: Pixel art creation tool using Fabric.js for canvas manipulation
 
 ### Admin Features
 
