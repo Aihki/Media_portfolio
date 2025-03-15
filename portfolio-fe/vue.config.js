@@ -37,38 +37,44 @@ module.exports = {
       '/static.files': {
         target: 'http://10.120.33.52',
         changeOrigin: true,
-        secure: false
-      },
-      // Proxy CSS and JS files that might be requested by documentation
-      '*.css': {
-        target: 'http://10.120.33.52',
-        changeOrigin: true,
         secure: false,
-        bypass: function(req, res, proxyOptions) {
-          // Only proxy CSS files that are likely part of the documentation
-          if (req.url.includes('normalize') || req.url.includes('rustdoc')) {
-            return false; // Continue with proxy
-          }
-          return req.url; // Skip proxy for other CSS files
-        }
+        pathRewrite: { '^/static.files': '/static.files' }
       },
-      '*.js': {
-        target: 'http://10.120.33.52',
-        changeOrigin: true,
-        secure: false,
-        bypass: function(req, res, proxyOptions) {
-          // Only proxy JS files that are likely part of the documentation
-          if (req.url.includes('storage-') || req.url.includes('main-') || req.url.includes('crates.js')) {
-            return false; // Continue with proxy
-          }
-          return req.url; // Skip proxy for other JS files
-        }
-      },
-      // Proxy font files that might be requested by documentation
+      // Font files in docs
       '*.woff2': {
         target: 'http://10.120.33.52',
         changeOrigin: true,
         secure: false
+      },
+      // Docs JavaScript files
+      '/crates.js': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true,
+        secure: false
+      },
+      // CSS files for docs
+      '/*.css': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true,
+        secure: false
+      },
+      // JS files for docs
+      '/*.js': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true,
+        secure: false
+      },
+      // Favicon and other assets
+      '/*.svg': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true,
+        secure: false
+      }
+    },
+    // Configure headers for font mime types
+    headers: {
+      "**/*.woff2": {
+        "Content-Type": "font/woff2"
       }
     },
     static: {
