@@ -3,6 +3,11 @@ module.exports = {
   devServer: {
     historyApiFallback: {
       rewrites: [
+        // Handle /docs/ route specifically - redirect to backend
+        {
+          from: /^\/docs\/.*/,
+          to: context => `http://10.120.33.52${context.parsedUrl.pathname}`
+        },
         // Serve model files directly from static directory
         { 
           from: /^\/static\/models\/.*\.(glb|gltf|usdz|splat)$/, 
