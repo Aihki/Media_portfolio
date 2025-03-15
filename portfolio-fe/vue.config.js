@@ -3,9 +3,9 @@ module.exports = {
   devServer: {
     historyApiFallback: {
       rewrites: [
-        // Handle /docs/ route specifically - redirect to backend
+        // Handle /docs/ route and all its assets - redirect to backend
         {
-          from: /^\/docs\/.*/,
+          from: /^\/(docs|static\.files)\/.*/,
           to: context => `http://10.120.33.52${context.parsedUrl.pathname}`
         },
         // Serve model files directly from static directory
@@ -21,6 +21,38 @@ module.exports = {
         // All other routes go through the single-page application
         { from: /./, to: '/index.html' }
       ]
+    },
+    proxy: {
+      // Proxy all doc-related requests to the backend
+      '/docs': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true
+      },
+      '/static.files': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true
+      },
+      // Proxy other potential doc asset paths
+      '/normalize-*.css': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true
+      },
+      '/rustdoc-*.css': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true
+      },
+      '/storage-*.js': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true
+      },
+      '/main-*.js': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true
+      },
+      '/crates.js': {
+        target: 'http://10.120.33.52',
+        changeOrigin: true
+      },
     },
     static: {
       // Explicitly serve the static directory
