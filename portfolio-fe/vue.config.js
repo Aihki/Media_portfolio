@@ -3,10 +3,15 @@ module.exports = {
   devServer: {
     historyApiFallback: {
       rewrites: [
-        // Handle /docs/ route and all its assets - redirect to backend
+        // Don't rewrite URLs for documentation paths
         {
-          from: /^\/(docs|static\.files)\/.*/,
-          to: context => `http://10.120.33.52${context.parsedUrl.pathname}`
+          from: /^\/docs(\/.*)?$/,
+          to: context => `http://10.120.33.52/docs${context.parsedUrl.pathname.replace(/^\/docs/, '')}`
+        },
+        // Don't rewrite URLs for static.files paths
+        {
+          from: /^\/static\.files(\/.*)?$/,
+          to: context => `http://10.120.33.52/static.files${context.parsedUrl.pathname.replace(/^\/static\.files/, '')}`
         },
         // Serve model files directly from static directory
         { 
@@ -26,33 +31,45 @@ module.exports = {
       // Proxy all doc-related requests to the backend
       '/docs': {
         target: 'http://10.120.33.52',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       },
       '/static.files': {
         target: 'http://10.120.33.52',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       },
-      // Proxy other potential doc asset paths
-      '/normalize-*.css': {
+      // Proxy CSS and JS files that might be requested by documentation
+      '*.css': {
         target: 'http://10.120.33.52',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false,
+        bypass: function(req, res, proxyOptions) {
+          // Only proxy CSS files that are likely part of the documentation
+          if (req.url.includes('normalize') || req.url.includes('rustdoc')) {
+            return false; // Continue with proxy
+          }
+          return req.url; // Skip proxy for other CSS files
+        }
       },
-      '/rustdoc-*.css': {
+      '*.js': {
         target: 'http://10.120.33.52',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false,
+        bypass: function(req, res, proxyOptions) {
+          // Only proxy JS files that are likely part of the documentation
+          if (req.url.includes('storage-') || req.url.includes('main-') || req.url.includes('crates.js')) {
+            return false; // Continue with proxy
+          }
+          return req.url; // Skip proxy for other JS files
+        }
       },
-      '/storage-*.js': {
+      // Proxy font files that might be requested by documentation
+      '*.woff2': {
         target: 'http://10.120.33.52',
-        changeOrigin: true
-      },
-      '/main-*.js': {
-        target: 'http://10.120.33.52',
-        changeOrigin: true
-      },
-      '/crates.js': {
-        target: 'http://10.120.33.52',
-        changeOrigin: true
-      },
+        changeOrigin: true,
+        secure: false
+      }
     },
     static: {
       // Explicitly serve the static directory
