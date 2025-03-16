@@ -5,7 +5,7 @@
     </header>
 
     <ProfileCard
-      name="Your Name"
+      name="Nestori Laine"
       title="photography enthusiast"
       bio="I'm a photography enthusiast who loves to capture the beauty of the world through my lens."
       :contactLinks="[
